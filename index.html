@@ -33,6 +33,7 @@
     --diario:#e5228e;
     --economia:#8fbf1f;
     --cartao:#7a2fe0;
+    --done:#37b24d;        /* dia concluído */
     --shadow:0 1px 3px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.05);
     --radius:20px;
     --safe-top:env(safe-area-inset-top,0px);
@@ -127,6 +128,30 @@
   .subrow .amt .val{margin-left:auto;}
   .subrow .amt.zero{color:var(--txt-3);}
   .subrow .bal{align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;font-weight:700;font-size:18px;}
+
+  /* dia concluído (marcação manual) */
+  .balrow .day[data-done],.subrow .lead[data-done]{cursor:pointer;}
+  .balrow.done .day::before,.dayblock.done .subrow:first-child .lead::before{
+    border-color:var(--done) transparent transparent transparent;}
+  .balrow.done .day::after,.dayblock.done .subrow:first-child .lead::after{
+    content:"✓";position:absolute;top:-2px;left:1px;font-size:11px;line-height:1;font-weight:900;color:#fff;}
+  .done-toggle{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;border-radius:14px;
+    background:var(--surface-2);border:1px solid var(--line-strong);color:var(--txt);font-size:16px;font-weight:700;}
+  .done-toggle .dt-box{width:24px;height:24px;flex:0 0 auto;border-radius:7px;border:2px solid var(--txt-3);
+    display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:900;}
+  .done-toggle.on{border-color:var(--done);color:var(--done);}
+  .done-toggle.on .dt-box{background:var(--done);border-color:var(--done);}
+
+  /* modal de escolha (repetidas) */
+  #modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:26px;
+    background:rgba(0,0,0,.42);}
+  #modal.open{display:flex;}
+  .modal-card{width:100%;max-width:400px;background:var(--surface);border-radius:26px;padding:26px 22px 18px;box-shadow:var(--shadow);}
+  .modal-title{font-size:25px;font-weight:800;margin-bottom:20px;color:var(--txt);}
+  .modal-opt{display:block;width:100%;padding:16px;border-radius:30px;border:1.5px solid var(--line-strong);
+    background:var(--surface);color:var(--txt);font-size:17px;font-weight:800;margin-bottom:14px;}
+  .modal-opt.danger{color:var(--saida);border-color:var(--saida);}
+  .modal-cancel{display:block;width:100%;padding:12px;background:none;color:var(--txt-2);font-size:17px;font-weight:800;}
 
   /* ---------- Cards / lists (totais, tags, menu) ---------- */
   .section-title{padding:22px 20px 8px;color:var(--txt-2);font-size:16px;font-weight:700;}
@@ -291,6 +316,7 @@
 </div>
 <div class="tabbar" id="tabbar"></div>
 <div class="backdrop" id="backdrop"><div class="sheet" id="sheet"></div></div>
+<div id="modal"></div>
 <div class="toast" id="toast"></div>
 <div id="authgate"></div>
 <div id="dayview"></div>
@@ -515,6 +541,7 @@ function renderSaldos(){
   let rows="";
   if(f==="todas"){
     for(let d=1;d<=dim;d++){
+      const ds=dstr(view.y,view.m,d);
       const list=byDay[d]||[];
       const has=list.length>0;
       const sums={}; TYPE_ORDER.forEach(tp=>sums[tp]=0);
@@ -524,21 +551,22 @@ function renderSaldos(){
         const v=sums[tp];const zero=v===0;
         const tItem=list.find(x=>x.type===tp);
         inner+=`<div class="subrow ${i===0&&has?'has':''}" ${tItem?`data-tx="${tItem.id}"`:""}>
-          <div class="lead">${i===0?`<span class="n ${isToday(d)?'':''}">${d}</span>`:""}</div>
+          <div class="lead" ${i===0?`data-done="${ds}"`:""}>${i===0?`<span class="n ${isToday(d)?'':''}">${d}</span>`:""}</div>
           <div class="amt ${zero?'zero':''}">${badge(tp,zero?'muted':'')}<span class="val">${brl(v)}</span></div>
           ${i===0?`<div class="bal" style="${balStyle(bals[d],maxAbs)}">${brl(bals[d])}</div>`:`<div class="bal" style="${balStyle(bals[d],maxAbs)};border:none"></div>`}
         </div>`;
       });
-      rows+=`<div class="dayblock" data-day="${d}">${inner}</div>`;
+      rows+=`<div class="dayblock ${doneMap()[ds]?'done':''}" data-day="${d}">${inner}</div>`;
     }
   } else {
     for(let d=1;d<=dim;d++){
+      const ds=dstr(view.y,view.m,d);
       const list=(byDay[d]||[]).filter(t=>t.type===fType);
       const v=list.reduce((s,t)=>s+t.amount,0);
       const zero=v===0;
       const tItem=list[0];
-      rows+=`<div class="balrow ${list.length?'has':''}" data-day="${d}">
-        <div class="day ${isToday(d)?'today':''}">${d}</div>
+      rows+=`<div class="balrow ${list.length?'has':''} ${doneMap()[ds]?'done':''}" data-day="${d}">
+        <div class="day ${isToday(d)?'today':''}" data-done="${ds}">${d}</div>
         <div class="amt ${zero?'zero':''}">${badge(fType,zero?'muted':'')}<span class="val">${brl(v)}</span></div>
         <div class="bal" style="${balStyle(bals[d],maxAbs)}">${brl(bals[d])}</div>
       </div>`;
@@ -546,6 +574,7 @@ function renderSaldos(){
   }
   c.innerHTML=sub+`<div class="scroll">${rows}</div>`;
   document.getElementById("filterBtn").onclick=()=>openFilterSheet(view.filter,f2=>{ view.filter=f2; render(); });
+  c.querySelectorAll("[data-done]").forEach(el=>el.onclick=e=>{ e.stopPropagation(); toggleDone(el.dataset.done); });
   c.querySelectorAll("[data-day]").forEach(el=>el.onclick=()=>openDay(dstr(view.y,view.m,+el.dataset.day)));
 }
 
@@ -790,12 +819,14 @@ function renderDay(){
       <button class="arrow dv-plain" id="dvAdd">+</button>
     </div>
     <div style="padding:14px 18px 6px"><button class="filter-pill" id="dvFilter" style="width:100%;justify-content:flex-start">${f==="todas"?'<span class="badge todas" style="background:var(--txt-2)">•••</span>':badge(fType)} ${fLabel}<span class="chev" style="margin-left:auto">▾</span></button></div>
+    <div style="padding:0 18px 8px"><button class="done-toggle ${doneMap()[dayOpen]?'on':''}" id="dvDone"><span class="dt-box">${doneMap()[dayOpen]?'✓':''}</span>${doneMap()[dayOpen]?'dia concluído':'marcar dia como concluído'}</button></div>
     <div class="scroll">${rows}</div>
   </div>`;
   document.getElementById("dvBack").onclick=closeDay;
   document.getElementById("dvAdd").onclick=()=>openAddSheet(null,dayOpen);
   document.getElementById("dvPrev").onclick=()=>shiftDay(-1);
   document.getElementById("dvNext").onclick=()=>shiftDay(1);
+  document.getElementById("dvDone").onclick=()=>{ toggleDone(dayOpen); renderDay(); };
   document.getElementById("dvFilter").onclick=()=>openFilterSheet(view.dayFilter,f2=>{ view.dayFilter=f2; renderDay(); });
   g.querySelectorAll("[data-tx]").forEach(el=>el.onclick=()=>openTxSheet(el.dataset.tx));
 }
@@ -815,6 +846,51 @@ function openSheet(html){
 function closeSheet(){ if(sheetOpen) navBack(); }
 backdrop.onclick=e=>{ if(e.target===backdrop) closeSheet(); };
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800); }
+
+/* modal de escolha (ex.: atualizar/excluir repetidas) -> Promise<key|null> */
+function pickModal({title,options,cancel="cancelar"}){
+  return new Promise(resolve=>{
+    const m=document.getElementById("modal");
+    const settle=v=>{ m.classList.remove("open"); m.innerHTML=""; m.onclick=null; resolve(v); };
+    m.innerHTML=`<div class="modal-card"><div class="modal-title">${title}</div>`+
+      options.map(o=>`<button class="modal-opt ${o.danger?'danger':''}" data-k="${o.key}">${o.label}</button>`).join("")+
+      `<button class="modal-cancel" data-k="__cancel">${cancel}</button></div>`;
+    m.classList.add("open");
+    m.querySelectorAll("[data-k]").forEach(el=>el.onclick=()=>settle(el.dataset.k==="__cancel"?null:el.dataset.k));
+    m.onclick=e=>{ if(e.target===m) settle(null); };
+  });
+}
+
+/* dias marcados como concluídos */
+function doneMap(){ return state.done||(state.done={}); }
+function toggleDone(dateStr){
+  const dn=doneMap();
+  if(dn[dateStr]) delete dn[dateStr]; else dn[dateStr]=true;
+  persist();
+  const on=!!dn[dateStr];
+  document.querySelectorAll(`[data-done="${dateStr}"]`).forEach(el=>{
+    const row=el.closest(".balrow,.dayblock"); if(row) row.classList.toggle("done",on);
+  });
+  return on;
+}
+
+/* exclui um lançamento, com escolha de escopo se for repetido -> Promise<bool> */
+async function deleteTx(txId){
+  const t=state.tx.find(x=>x.id===txId); if(!t) return false;
+  const sibs=t.series?state.tx.filter(x=>x.series===t.series):[];
+  if(sibs.length>1){
+    const scope=await pickModal({title:"excluir repetidas",options:[
+      {key:"one",label:"excluir somente esta",danger:true},
+      {key:"future",label:"excluir esta e as próximas",danger:true}]});
+    if(scope===null) return false;
+    if(scope==="one") state.tx=state.tx.filter(x=>x.id!==t.id);
+    else state.tx=state.tx.filter(x=>!(x.series===t.series && x.date>=t.date));
+  } else {
+    if(!confirm("Excluir este lançamento?")) return false;
+    state.tx=state.tx.filter(x=>x.id!==t.id);
+  }
+  persist(); return true;
+}
 
 /* filtro "mostrar" */
 function openFilterSheet(current,onSelect){
@@ -894,7 +970,7 @@ function openAddSheet(txId,presetDate){
   }
   if(!editing) renderRepeat();
 
-  document.getElementById("saveTx").onclick=()=>{
+  document.getElementById("saveTx").onclick=async()=>{
     const amt=parseAmount(document.getElementById("fAmount").value);
     if(amt<=0){ toast("Informe um valor"); return; }
     const obj={
@@ -904,9 +980,26 @@ function openAddSheet(txId,presetDate){
       tag:document.getElementById("fTag").value,
       card:cur==="cartao"?document.getElementById("fCard").value:""
     };
-    if(editing){ Object.assign(editing,obj); toast("Lançamento atualizado"); }
+    if(editing){
+      const sibs=editing.series?state.tx.filter(t=>t.series===editing.series):[];
+      if(sibs.length>1){
+        const scope=await pickModal({title:"atualizar repetidas",options:[
+          {key:"one",label:"atualizar somente esta"},
+          {key:"future",label:"atualizar esta e as próximas"}]});
+        if(scope===null) return;   // cancelado — mantém o formulário aberto
+        if(scope==="future"){
+          const cut=editing.date;
+          state.tx.forEach(t=>{ if(t.series===editing.series && t.id!==editing.id && t.date>=cut){
+            t.type=obj.type; t.amount=obj.amount; t.desc=obj.desc; t.tag=obj.tag; t.card=obj.card;
+          }});
+        }
+        Object.assign(editing,obj);
+        toast(scope==="one"?"Lançamento atualizado":"Repetições atualizadas");
+      } else { Object.assign(editing,obj); toast("Lançamento atualizado"); }
+    }
     else if(repMode!=="none"){
       const n=Math.max(2,repCount|0);
+      const series=uid();
       const base=new Date(obj.date+"T12:00:00");
       const per=[];
       if(repMode==="parcelado"){
@@ -919,7 +1012,7 @@ function openAddSheet(txId,presetDate){
         else if(repMode==="daily") d.setDate(d.getDate()+k);
         else d.setMonth(d.getMonth()+k);
         const desc = repMode==="parcelado" ? ((obj.desc||TYPE_WORD[obj.type])+` (${k+1}/${n})`) : obj.desc;
-        state.tx.push({id:uid(),...obj,amount:per[k],desc,date:dstr(d.getFullYear(),d.getMonth(),d.getDate())});
+        state.tx.push({id:uid(),...obj,amount:per[k],desc,date:dstr(d.getFullYear(),d.getMonth(),d.getDate()),series,recur:true});
       }
       toast(`${n} lançamentos adicionados`);
     }
@@ -928,8 +1021,8 @@ function openAddSheet(txId,presetDate){
     const mo=+obj.date.slice(5,7)-1, yr=+obj.date.slice(0,4);
     view.y=yr; view.m=mo; refresh();
   };
-  if(editing) document.getElementById("delTx").onclick=()=>{
-    if(confirm("Excluir este lançamento?")){ state.tx=state.tx.filter(t=>t.id!==editing.id); persist(); closeSheet(); refresh(); toast("Excluído"); }
+  if(editing) document.getElementById("delTx").onclick=async()=>{
+    if(await deleteTx(editing.id)){ closeSheet(); refresh(); toast("Excluído"); }
   };
   setTimeout(()=>{ const a=document.getElementById("fAmount"); if(a&&!editing)a.focus(); },300);
 }
@@ -943,11 +1036,12 @@ function openTxSheet(txId){
       <div style="text-align:center;margin:-6px 0 16px">${badge(t.type,"sm")} <span style="font-weight:700;color:var(--txt-2)">${TYPES[t.type].label}${t.card?' · '+t.card:''}${t.tag?' · '+t.tag:''}</span></div>
       <div style="text-align:center;font-size:18px;font-weight:600;margin-bottom:4px">${t.desc||"(sem descrição)"}</div>
       <div style="text-align:center;color:var(--txt-2);font-weight:600">${t.date.split('-').reverse().join('/')}</div>
+      ${t.series&&state.tx.some(x=>x.series===t.series&&x.id!==t.id)?`<div style="text-align:center;color:var(--txt-2);font-weight:700;margin-top:8px">↺ lançamento repetido</div>`:""}
       <button class="save-btn" id="editThis">editar</button>
       <button class="del-btn" id="delThis">excluir</button>
     </div>`);
   document.getElementById("editThis").onclick=()=>openAddSheet(txId);
-  document.getElementById("delThis").onclick=()=>{ if(confirm("Excluir este lançamento?")){ state.tx=state.tx.filter(x=>x.id!==txId); persist(); closeSheet(); refresh(); toast("Excluído"); } };
+  document.getElementById("delThis").onclick=async()=>{ if(await deleteTx(txId)){ closeSheet(); refresh(); toast("Excluído"); } };
 }
 
 /* tag criar/editar */
