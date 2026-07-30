@@ -298,12 +298,12 @@ const Store={
    3) Crie o Firestore Database (modo produção) e aplique as regras enviadas
    4) Em "Configurações do projeto" > seus apps (Web), copie o firebaseConfig e cole abaixo */
 const firebaseConfig = {
-  apiKey: "COLE_SUA_API_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_PROJETO",
-  storageBucket: "SEU_PROJETO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:xxxxxxxxxxxx"
+  apiKey: "AIzaSyDLFa0bKF409UnZQ-Ug9o9k6Zdc_Oo1MXs",
+  authDomain: "minhas-financas-21f80.firebaseapp.com",
+  projectId: "minhas-financas-21f80",
+  storageBucket: "minhas-financas-21f80.firebasestorage.app",
+  messagingSenderId: "880368654147",
+  appId: "1:880368654147:web:75a18593872d9a570901f6"
 };
 const FB_ON = (typeof firebase!=="undefined") && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("COLE_");
 let auth=null, db=null, authUid=null, authEmail=null, cloudReady=false, unsub=null, writeTimer=null;
