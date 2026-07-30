@@ -207,6 +207,29 @@
   .field.hidden{display:none;}
   .save-btn{width:100%;padding:17px;border-radius:16px;background:var(--accent);color:#fff;font-size:19px;font-weight:800;margin:16px 0 6px;}
   .del-btn{width:100%;padding:15px;border-radius:16px;background:transparent;color:var(--saida);font-size:17px;font-weight:800;}
+  /* repetir */
+  .rep-head{display:flex;align-items:center;gap:14px;padding:16px 0;border-top:1px solid var(--line);font-size:18px;font-weight:700;cursor:pointer;}
+  .rep-head .rep-ic{width:26px;height:26px;flex:0 0 auto;}
+  .rep-head .rep-ic svg{width:24px;height:24px;stroke:var(--txt);fill:none;stroke-width:2;}
+  .rep-head .rep-name{flex:1 1 auto;min-width:0;}
+  .rep-head .chev{color:var(--txt-3);font-size:16px;}
+  .rep-head .rep-x{width:34px;height:34px;flex:0 0 auto;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    color:var(--txt-2);font-size:20px;font-weight:700;background:var(--bg);}
+  .rep-opts{border-top:1px solid var(--line);}
+  .rep-opt{padding:14px 0 14px 40px;border-top:1px solid var(--line);cursor:pointer;position:relative;}
+  .rep-opt:first-child{border-top:none;}
+  .rep-opt .t{font-size:17px;font-weight:800;}
+  .rep-opt .d{font-size:13px;color:var(--txt-2);font-weight:600;margin-top:3px;}
+  .rep-opt.sel .t{color:var(--accent);}
+  .rep-opt.sel::after{content:"✓";position:absolute;right:2px;top:14px;color:var(--accent);font-weight:800;font-size:19px;}
+  .rep-cwrap{padding:16px 0 4px;border-top:1px solid var(--line);}
+  .rep-cwrap .rl{font-size:14px;color:var(--txt-2);font-weight:700;margin-bottom:12px;}
+  .rep-crow{display:flex;align-items:center;gap:12px;}
+  .rep-prev{flex:1 1 auto;min-width:0;font-size:18px;font-weight:800;}
+  .rep-prev b{font-weight:800;}
+  .step-btn{width:46px;height:46px;flex:0 0 auto;border-radius:13px;background:var(--bg);font-size:26px;font-weight:700;
+    color:var(--txt);display:flex;align-items:center;justify-content:center;line-height:1;}
+  .step-btn:disabled{color:var(--txt-3);}
   .color-row{display:flex;gap:10px;flex-wrap:wrap;padding-top:4px;}
   .swatch{width:34px;height:34px;border-radius:50%;border:3px solid transparent;}
   .swatch.sel{border-color:var(--txt);}
@@ -327,6 +350,15 @@ function parseAmount(s){
   if(s.includes(",")){ s=s.replace(/\./g,"").replace(",","."); }
   const n=parseFloat(s); return isNaN(n)?0:n;
 }
+// Máscara de digitação "banco": conta os dígitos como centavos e insere vírgula/pontos sozinho.
+function centsMask(v){
+  const digits=(v||"").toString().replace(/\D/g,"").slice(0,13);
+  if(digits==="")return "";
+  const cents=parseInt(digits,10);
+  const inteiro=Math.floor(cents/100), c=cents%100;
+  return inteiro.toLocaleString("pt-BR")+","+String(c).padStart(2,"0");
+}
+const amountMask=n=>centsMask(String(Math.round((n||0)*100)));
 const TYPES={
   entrada:{label:"entradas",cls:"entrada",glyph:"in"},
   saida:{label:"saídas",cls:"saida",glyph:"out"},
@@ -808,9 +840,10 @@ function openAddSheet(txId,presetDate){
   openSheet(`<div class="sheet-head"><h2>${editing?"editar":"novo lançamento"}</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form">
       <div class="type-tabs" id="typeTabs">${tabs}</div>
-      <div class="amount-box"><span class="cur">R$</span> <input id="fAmount" inputmode="decimal" placeholder="0,00" value="${editing?editing.amount.toFixed(2).replace('.',','):''}"></div>
+      <div class="amount-box"><span class="cur">R$</span> <input id="fAmount" inputmode="numeric" maxlength="16" placeholder="0,00" value="${editing?amountMask(editing.amount):''}"></div>
       <div class="field"><label>descrição</label><input type="text" id="fDesc" placeholder="ex: mercado, salário..." value="${editing?editing.desc.replace(/"/g,'&quot;'):''}"></div>
       <div class="field"><label>data</label><input type="date" id="fDate" value="${defDate}"></div>
+      ${editing?"":`<div id="repeatWrap"></div>`}
       <div class="field"><label>tag</label><select id="fTag">${tagOpts}</select></div>
       <div class="field ${sel==='cartao'?'':'hidden'}" id="cardField"><label>cartão</label><select id="fCard">${cardOpts}</select></div>
       <button class="save-btn" id="saveTx">${editing?"salvar alterações":"adicionar"}</button>
@@ -822,6 +855,45 @@ function openAddSheet(txId,presetDate){
     cur=el.dataset.tp; sheetEl.querySelectorAll(".type-tab").forEach(x=>x.classList.remove("sel")); el.classList.add("sel");
     document.getElementById("cardField").classList.toggle("hidden",cur!=="cartao");
   });
+
+  // valor: vírgula automática (conta os dígitos como centavos)
+  const amtEl=document.getElementById("fAmount");
+  amtEl.addEventListener("input",()=>{ amtEl.value=centsMask(amtEl.value); updateRepPreview(); });
+
+  // repetir valor (apenas em novos lançamentos)
+  let repMode="none", repCount=12, repOpen=false;
+  const REP_ORDER=["monthly","weekly","daily","parcelado"];
+  const REP={
+    none:{label:"não repete"},
+    monthly:{label:"repete mensalmente",opt:"mensalmente",desc:"repete o mesmo valor mensalmente",def:12},
+    weekly:{label:"repete semanalmente",opt:"semanalmente",desc:"repete o mesmo valor semanalmente",def:8},
+    daily:{label:"repete diariamente",opt:"diariamente",desc:"repete o mesmo valor diariamente",def:7},
+    parcelado:{label:"parcelado",opt:"parcelado",desc:"divide o valor pelo número de parcelas",def:2}
+  };
+  const repPer=()=>{ const v=parseAmount(amtEl.value); return repMode==="parcelado"?(repCount>0?v/repCount:v):v; };
+  function updateRepPreview(){ const p=document.getElementById("repPrev"); if(p)p.innerHTML=`# <b>${repCount}×</b> de ${brl(repPer())}`; }
+  function renderRepeat(){
+    const w=document.getElementById("repeatWrap"); if(!w) return;
+    const icRep='<span class="rep-ic"><svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span>';
+    let h=`<div class="rep-head" id="repHead">${icRep}<span class="rep-name">${REP[repMode].label}</span>${repMode==="none"?'<span class="chev">▾</span>':'<button type="button" class="rep-x" id="repClear">✕</button>'}</div>`;
+    if(repOpen){
+      h+=`<div class="rep-opts">`+["none",...REP_ORDER].map(m=>`<div class="rep-opt ${m===repMode?'sel':''}" data-m="${m}"><div class="t">${m==="none"?"não repete":REP[m].opt}</div>${m==="none"?"":`<div class="d">${REP[m].desc}</div>`}</div>`).join("")+`</div>`;
+    }
+    if(repMode!=="none"){
+      h+=`<div class="rep-cwrap"><div class="rl">número de ${repMode==="parcelado"?"parcelas":"repetições"}</div>
+        <div class="rep-crow"><span class="rep-prev" id="repPrev"># <b>${repCount}×</b> de ${brl(repPer())}</span>
+        <button type="button" class="step-btn" id="repMinus" ${repCount<=2?"disabled":""}>−</button>
+        <button type="button" class="step-btn" id="repPlus">+</button></div></div>`;
+    }
+    w.innerHTML=h;
+    document.getElementById("repHead").onclick=()=>{ repOpen=!repOpen; renderRepeat(); };
+    const rx=document.getElementById("repClear"); if(rx)rx.onclick=e=>{ e.stopPropagation(); repMode="none"; repOpen=false; renderRepeat(); };
+    w.querySelectorAll("[data-m]").forEach(el=>el.onclick=()=>{ const m=el.dataset.m; repMode=m; if(m!=="none")repCount=REP[m].def; repOpen=false; renderRepeat(); });
+    const mn=document.getElementById("repMinus"); if(mn)mn.onclick=()=>{ repCount=Math.max(2,repCount-1); renderRepeat(); };
+    const pl=document.getElementById("repPlus"); if(pl)pl.onclick=()=>{ repCount=Math.min(360,repCount+1); renderRepeat(); };
+  }
+  if(!editing) renderRepeat();
+
   document.getElementById("saveTx").onclick=()=>{
     const amt=parseAmount(document.getElementById("fAmount").value);
     if(amt<=0){ toast("Informe um valor"); return; }
@@ -833,6 +905,24 @@ function openAddSheet(txId,presetDate){
       card:cur==="cartao"?document.getElementById("fCard").value:""
     };
     if(editing){ Object.assign(editing,obj); toast("Lançamento atualizado"); }
+    else if(repMode!=="none"){
+      const n=Math.max(2,repCount|0);
+      const base=new Date(obj.date+"T12:00:00");
+      const per=[];
+      if(repMode==="parcelado"){
+        const cents=Math.round(amt*100), q=Math.floor(cents/n), r=cents-q*n;
+        for(let k=0;k<n;k++) per.push((q+(k<r?1:0))/100);
+      } else { for(let k=0;k<n;k++) per.push(amt); }
+      for(let k=0;k<n;k++){
+        const d=new Date(base);
+        if(repMode==="weekly") d.setDate(d.getDate()+7*k);
+        else if(repMode==="daily") d.setDate(d.getDate()+k);
+        else d.setMonth(d.getMonth()+k);
+        const desc = repMode==="parcelado" ? ((obj.desc||TYPE_WORD[obj.type])+` (${k+1}/${n})`) : obj.desc;
+        state.tx.push({id:uid(),...obj,amount:per[k],desc,date:dstr(d.getFullYear(),d.getMonth(),d.getDate())});
+      }
+      toast(`${n} lançamentos adicionados`);
+    }
     else { state.tx.push({id:uid(),...obj}); toast("Lançamento adicionado"); }
     persist(); closeSheet();
     const mo=+obj.date.slice(5,7)-1, yr=+obj.date.slice(0,4);
