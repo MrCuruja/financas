@@ -128,8 +128,6 @@
   .subrow .amt.zero{color:var(--txt-3);}
   .subrow .bal{align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;font-weight:700;font-size:18px;}
 
-  .desc-chip{font-size:12px;color:var(--txt-2);font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
   /* ---------- Cards / lists (totais, tags, menu) ---------- */
   .section-title{padding:22px 20px 8px;color:var(--txt-2);font-size:16px;font-weight:700;}
   .card{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
@@ -495,7 +493,7 @@ function renderSaldos(){
         const tItem=list.find(x=>x.type===tp);
         inner+=`<div class="subrow ${i===0&&has?'has':''}" ${tItem?`data-tx="${tItem.id}"`:""}>
           <div class="lead">${i===0?`<span class="n ${isToday(d)?'':''}">${d}</span>`:""}</div>
-          <div class="amt ${zero?'zero':''}">${badge(tp,zero?'muted':'')}${tItem&&tItem.desc?`<span class="desc-chip">${tItem.desc}</span>`:""}<span class="val">${brl(v)}</span></div>
+          <div class="amt ${zero?'zero':''}">${badge(tp,zero?'muted':'')}<span class="val">${brl(v)}</span></div>
           ${i===0?`<div class="bal" style="${balStyle(bals[d],maxAbs)}">${brl(bals[d])}</div>`:`<div class="bal" style="${balStyle(bals[d],maxAbs)};border:none"></div>`}
         </div>`;
       });
@@ -509,7 +507,7 @@ function renderSaldos(){
       const tItem=list[0];
       rows+=`<div class="balrow ${list.length?'has':''}" data-day="${d}">
         <div class="day ${isToday(d)?'today':''}">${d}</div>
-        <div class="amt ${zero?'zero':''}">${badge(fType,zero?'muted':'')}${tItem&&tItem.desc?`<span class="desc-chip">${tItem.desc}</span>`:""}<span class="val">${brl(v)}</span></div>
+        <div class="amt ${zero?'zero':''}">${badge(fType,zero?'muted':'')}<span class="val">${brl(v)}</span></div>
         <div class="bal" style="${balStyle(bals[d],maxAbs)}">${brl(bals[d])}</div>
       </div>`;
     }
@@ -613,18 +611,26 @@ function renderMenu(){
   const dark=state.settings.theme==="dark";
   const ic=p=>`<span class="menu-ic"><svg viewBox="0 0 24 24" fill="none">${p}</svg></span>`;
   const online = navigator.onLine && !connLost;
-  const statusCard = FB_ON
-    ? `<div class="section-title">status da nuvem</div><div class="card">
-        <div class="menu-row" style="cursor:default;align-items:flex-start">
+  const account = FB_ON
+    ? (authUid
+      ? `<div class="section-title">conta</div><div class="card">
+        <div class="menu-row" style="cursor:default;align-items:center">
           ${ic('<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 011 6.85"/>')}
-          <div style="line-height:1.4;min-width:0">
-            <div style="font-weight:800">${authUid?(online?"Conectado à nuvem":"Sem conexão"):"Não conectado"}</div>
-            <div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${authEmail||"—"}</div>
-            <div class="sub" style="color:var(--txt-3);font-size:12px">ID: ${authUid?authUid.slice(0,10):"—"}${lastServerSync?" · lido "+lastServerSync:(authUid?" · aguardando servidor":"")}</div>
+          <div style="line-height:1.35;min-width:0;flex:1 1 auto">
+            <div style="font-weight:800">${online?"Conectado à nuvem":"Sem conexão"}</div>
+            <div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt-2)">${authEmail||"conectado"}</div>
           </div>
-          <span style="margin-left:auto;font-size:12px;font-weight:800;color:${online?"var(--green)":"var(--saida)"}">${online?"● online":"● offline"}</span>
+          <span style="flex:0 0 auto;font-size:12px;font-weight:800;color:${online?"var(--green)":"var(--saida)"}">${online?"● online":"● offline"}</span>
         </div>
+        <div class="menu-row" id="mSignOut" style="color:var(--saida)">${ic('<path d="M16 17l5-5-5-5M21 12H9M12 19H6a2 2 0 01-2-2V7a2 2 0 012-2h6" stroke="#c1481c"/>')}Sair<span class="chev" style="color:var(--saida)">›</span></div>
       </div>`
+      : `<div class="section-title">conta</div><div class="card">
+        <div class="menu-row" style="cursor:default;align-items:center">
+          ${ic('<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 011 6.85"/>')}
+          <div style="font-weight:800;flex:1 1 auto">Não conectado</div>
+          <span style="flex:0 0 auto;font-size:12px;font-weight:800;color:var(--saida)">● offline</span>
+        </div>
+      </div>`)
     : `<div class="section-title">status</div><div class="card">
         <div class="menu-row" style="cursor:default;align-items:flex-start;color:var(--saida)">
           ${ic('<path d="M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke="#c1481c"/>')}
@@ -634,12 +640,6 @@ function renderMenu(){
           </div>
         </div>
       </div>`;
-  const acct=(FB_ON && authUid)
-    ? `<div class="section-title">conta</div><div class="card">
-        <div class="menu-row" style="cursor:default">${ic('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>')}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${authEmail||"conectado"}</span><span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--green)">● nuvem</span></div>
-        <div class="menu-row" id="mSignOut" style="color:var(--saida)">${ic('<path d="M16 17l5-5-5-5M21 12H9M12 19H6a2 2 0 01-2-2V7a2 2 0 012-2h6" stroke="#c1481c"/>')}Sair<span class="chev" style="color:var(--saida)">›</span></div>
-      </div>`
-    : "";
   const sync=(FB_ON && authUid)
     ? `<div class="section-title">sincronização</div><div class="card">
         <div class="menu-row" id="mPull">${ic('<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 011 6.85"/><path d="M12 11v8M9 16l3 3 3-3"/>')}Baixar da nuvem<span class="chev">›</span></div>
@@ -647,8 +647,7 @@ function renderMenu(){
       </div>`
     : "";
   c.innerHTML=`<div class="scroll">
-    ${statusCard}
-    ${acct}
+    ${account}
     ${sync}
     <div class="section-title">gerenciar</div>
     <div class="card">
@@ -668,7 +667,6 @@ function renderMenu(){
     <div class="card">
       <div class="menu-row" id="mExport">${ic('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>')}Exportar dados (JSON)<span class="chev">›</span></div>
       <div class="menu-row" id="mImport">${ic('<path d="M12 15V3M7 8l5-5 5 5M5 21h14"/>')}Importar dados<span class="chev">›</span></div>
-      <div class="menu-row" id="mSeed">${ic('<path d="M4 4v6h6M20 20v-6h-6M20 4l-8 8M4 20l5-5"/>')}Recarregar exemplo<span class="chev">›</span></div>
       <div class="menu-row" id="mClear" style="color:var(--saida)">${ic('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="#c1481c"/>')}Apagar tudo<span class="chev" style="color:var(--saida)">›</span></div>
     </div>
     <div class="empty" style="padding:26px 20px;font-size:12px;line-height:1.6">Termômetro · versão <b>${APP_VERSION}</b><br>${FB_ON?(authUid?("nuvem · "+(authEmail||"")):"nuvem · não conectado"):"modo local (sem sincronização)"}</div>
@@ -685,7 +683,6 @@ function renderMenu(){
   document.getElementById("mTheme").onclick=()=>{ state.settings.theme=dark?"light":"dark"; applyTheme(); persist(); render(); };
   document.getElementById("mExport").onclick=exportData;
   document.getElementById("mImport").onclick=importData;
-  document.getElementById("mSeed").onclick=()=>{ if(confirm("Substituir tudo pelos dados de exemplo?")){ state=seed(); persist(); render(); toast("Exemplo carregado"); } };
   document.getElementById("mClear").onclick=()=>{ if(confirm("Apagar TODOS os lançamentos, tags e cartões?")){ state={tx:[],cards:[],tags:[],settings:{initial:0,forecast:0,theme:state.settings.theme}}; persist(); render(); toast("Tudo apagado"); } };
 }
 
@@ -694,7 +691,7 @@ function renderTabs(){
   const tb=document.getElementById("tabbar");
   const I={
     saldos:'<path d="M3 6h4M3 12h4M3 18h4M10 6h11M10 12h11M10 18h11"/>',
-    totais:'<path d="M4 6h6M4 10h6M7 4v8M15 6l5 5M20 6l-5 5M14 16h6M14 20h6"/>',
+    totais:'<path d="M4 20h16M8 20v-5M12 20v-10M16 20v-7"/>',
     tags:'<path d="M20.6 12.6l-8 8a2 2 0 01-2.8 0L3 14V4h10l7.6 7.6a2 2 0 010 1z"/><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/>',
     menu:'<path d="M3 6h18M3 12h18M3 18h18"/>'
   };
