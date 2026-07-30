@@ -283,6 +283,7 @@
 
 <script>
 "use strict";
+const APP_VERSION="2026-07-30 · nuvem-unica v1";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -611,6 +612,28 @@ function renderMenu(){
   const c=document.getElementById("content");
   const dark=state.settings.theme==="dark";
   const ic=p=>`<span class="menu-ic"><svg viewBox="0 0 24 24" fill="none">${p}</svg></span>`;
+  const online = navigator.onLine && !connLost;
+  const statusCard = FB_ON
+    ? `<div class="section-title">status da nuvem</div><div class="card">
+        <div class="menu-row" style="cursor:default;align-items:flex-start">
+          ${ic('<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 011 6.85"/>')}
+          <div style="line-height:1.4;min-width:0">
+            <div style="font-weight:800">${authUid?(online?"Conectado à nuvem":"Sem conexão"):"Não conectado"}</div>
+            <div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${authEmail||"—"}</div>
+            <div class="sub" style="color:var(--txt-3);font-size:12px">ID: ${authUid?authUid.slice(0,10):"—"}${lastServerSync?" · lido "+lastServerSync:(authUid?" · aguardando servidor":"")}</div>
+          </div>
+          <span style="margin-left:auto;font-size:12px;font-weight:800;color:${online?"var(--green)":"var(--saida)"}">${online?"● online":"● offline"}</span>
+        </div>
+      </div>`
+    : `<div class="section-title">status</div><div class="card">
+        <div class="menu-row" style="cursor:default;align-items:flex-start;color:var(--saida)">
+          ${ic('<path d="M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke="#c1481c"/>')}
+          <div style="line-height:1.4">
+            <div style="font-weight:800">Modo local — NÃO sincroniza</div>
+            <div class="sub" style="color:var(--txt-2)">O Firebase não está configurado neste arquivo, então cada aparelho guarda seus próprios dados. Cole suas credenciais em <b>firebaseConfig</b> para ativar a nuvem.</div>
+          </div>
+        </div>
+      </div>`;
   const acct=(FB_ON && authUid)
     ? `<div class="section-title">conta</div><div class="card">
         <div class="menu-row" style="cursor:default">${ic('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>')}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${authEmail||"conectado"}</span><span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--green)">● nuvem</span></div>
@@ -624,6 +647,7 @@ function renderMenu(){
       </div>`
     : "";
   c.innerHTML=`<div class="scroll">
+    ${statusCard}
     ${acct}
     ${sync}
     <div class="section-title">gerenciar</div>
@@ -647,7 +671,7 @@ function renderMenu(){
       <div class="menu-row" id="mSeed">${ic('<path d="M4 4v6h6M20 20v-6h-6M20 4l-8 8M4 20l5-5"/>')}Recarregar exemplo<span class="chev">›</span></div>
       <div class="menu-row" id="mClear" style="color:var(--saida)">${ic('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="#c1481c"/>')}Apagar tudo<span class="chev" style="color:var(--saida)">›</span></div>
     </div>
-    <div class="empty" style="padding:30px 20px;font-size:13px">Termômetro Financeiro · ${(FB_ON&&authUid)?"sincronizado com o Firebase":"dados salvos só neste dispositivo"}</div>
+    <div class="empty" style="padding:26px 20px;font-size:12px;line-height:1.6">Termômetro · versão <b>${APP_VERSION}</b><br>${FB_ON?(authUid?("nuvem · "+(authEmail||"")):"nuvem · não conectado"):"modo local (sem sincronização)"}</div>
   </div>`;
   if(FB_ON && authUid){
     const so=document.getElementById("mSignOut"); if(so)so.onclick=()=>{ if(confirm("Sair da conta?")) auth.signOut(); };
@@ -943,7 +967,7 @@ function setupAuthGate(){
     }
   });
 }
-let cloudRef=null, loadFallback=null;
+let cloudRef=null, loadFallback=null, lastServerSync=null;
 function adoptCloud(data){
   state=data;
   if(!state.settings) state.settings={initial:0,forecast:0,theme:"light"};
@@ -969,7 +993,9 @@ function subscribeCloud(){
         // servidor CONFIRMOU que o documento não existe -> 1º acesso (cria vazio)
         cloudRef.set(state).catch(()=>connSet(true));
       }
+      lastServerSync=new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
       hideLoading();
+      if(view.tab==="menu") render();
     }else{
       // veio do cache (provavelmente offline): nunca sobrescreve a nuvem
       if(snap.exists){
@@ -1075,6 +1101,7 @@ function connSet(lost){
   connLost=!!lost;
   const b=document.getElementById("netbar");
   if(b){ b.textContent="Sem conexão — as alterações não serão salvas"; b.classList.toggle("show", connLost && FB_ON); }
+  if(view.tab==="menu") render();
 }
 function showLoading(){ const e=document.getElementById("cloudload"); if(e)e.classList.add("show"); }
 function hideLoading(){ const e=document.getElementById("cloudload"); if(e)e.classList.remove("show"); }
