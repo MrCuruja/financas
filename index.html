@@ -101,6 +101,15 @@
   .screen{padding-bottom:120px;}
   .scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;}
 
+  /* saldos: barra fixa + só a lista rola + arrastar p/ trocar coluna */
+  body.saldos-active #app{height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+  body.saldos-active #header{flex:0 0 auto;}
+  body.saldos-active #content{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding-bottom:0;}
+  body.saldos-active #content>.subbar{flex:0 0 auto;background:var(--bg);}
+  body.saldos-active #content>.saldos-scroll{flex:1 1 auto;min-height:0;}
+  .saldos-scroll{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;}
+  .saldos-track{padding-bottom:calc(var(--safe-bot) + 78px);}
+
   /* saldos rows */
   .balrow{display:grid;grid-template-columns:46px 1fr 150px;align-items:stretch;border-bottom:1px solid var(--line);
     background:var(--surface);min-height:64px;position:relative;}
@@ -393,6 +402,7 @@ const TYPES={
   cartao:{label:"gastos com cartão",cls:"cartao",glyph:"C"}
 };
 const TYPE_ORDER=["entrada","saida","diario","economia","cartao"];
+const SALDO_ORDER=["todas","entradas","saidas","diarios","economias","cartao"];
 const TAG_COLORS=["#e9df7f","#a9cce3","#c7b6e8","#d9d9d9","#a7e0a7","#7fd68a","#f5c396","#f2a7c0","#8fd0d6","#f7b7b7"];
 
 function badgeSVG(glyph){
@@ -572,10 +582,56 @@ function renderSaldos(){
       </div>`;
     }
   }
-  c.innerHTML=sub+`<div class="scroll">${rows}</div>`;
+  c.innerHTML=sub+`<div class="scroll saldos-scroll" id="saldosScroll"><div class="saldos-track" id="saldosTrack">${rows}</div></div>`;
   document.getElementById("filterBtn").onclick=()=>openFilterSheet(view.filter,f2=>{ view.filter=f2; render(); });
   c.querySelectorAll("[data-done]").forEach(el=>el.onclick=e=>{ e.stopPropagation(); toggleDone(el.dataset.done); });
   c.querySelectorAll("[data-day]").forEach(el=>el.onclick=()=>openDay(dstr(view.y,view.m,+el.dataset.day)));
+  attachSaldosSwipe();
+}
+
+/* arrastar para os lados troca a coluna (filtro) exibida */
+function attachSaldosSwipe(){
+  const scroll=document.getElementById("saldosScroll");
+  const track=document.getElementById("saldosTrack");
+  if(!scroll||!track) return;
+  let sx=0,sy=0,dx=0,horiz=null,active=false,suppress=false;
+  const settle=()=>{ track.style.transition="transform .2s ease, opacity .2s ease"; track.style.transform="translateX(0)"; track.style.opacity="1"; };
+  scroll.addEventListener("click",e=>{ if(suppress){ e.stopPropagation(); e.preventDefault(); } },true);
+  scroll.addEventListener("pointerdown",e=>{ if(e.pointerType==="mouse"&&e.button!==0)return;
+    sx=e.clientX; sy=e.clientY; dx=0; horiz=null; active=true; track.style.transition="none"; });
+  scroll.addEventListener("pointermove",e=>{
+    if(!active) return;
+    dx=e.clientX-sx; const dy=e.clientY-sy;
+    if(horiz===null && (Math.abs(dx)>8||Math.abs(dy)>8)) horiz=Math.abs(dx)>Math.abs(dy)*1.2;
+    if(horiz){ track.style.transform=`translateX(${dx}px)`; track.style.opacity=String(Math.max(.5,1-Math.abs(dx)/520)); }
+  });
+  const finish=()=>{
+    if(!active) return; active=false;
+    if(!horiz) return;
+    suppress=true; setTimeout(()=>suppress=false,350);
+    const TH=56;
+    if(dx<=-TH) return commitSwipe(1,scroll,track);
+    if(dx>=TH) return commitSwipe(-1,scroll,track);
+    settle();
+  };
+  scroll.addEventListener("pointerup",finish);
+  scroll.addEventListener("pointercancel",()=>{ if(active){ active=false; if(horiz) settle(); } });
+}
+function commitSwipe(dir,scroll,track){
+  const idx=SALDO_ORDER.indexOf(view.filter);
+  const ni=(idx+dir+SALDO_ORDER.length)%SALDO_ORDER.length;
+  const sc=scroll.scrollTop;
+  track.style.transition="transform .18s ease, opacity .18s ease";
+  track.style.transform=`translateX(${dir>0?"-100%":"100%"})`;
+  track.style.opacity="0.2";
+  view.filter=SALDO_ORDER[ni];
+  setTimeout(()=>{
+    renderSaldos();
+    const ns=document.getElementById("saldosScroll"), nt=document.getElementById("saldosTrack");
+    if(ns) ns.scrollTop=sc;
+    if(nt){ nt.style.transition="none"; nt.style.transform=`translateX(${dir>0?"100%":"-100%"})`; nt.style.opacity="0.2";
+      requestAnimationFrame(()=>{ nt.style.transition="transform .2s ease, opacity .2s ease"; nt.style.transform="translateX(0)"; nt.style.opacity="1"; }); }
+  },170);
 }
 
 /* =================== Render: Totais =================== */
@@ -767,6 +823,7 @@ function renderTabs(){
 /* =================== Render principal =================== */
 function render(){
   renderHeader(); renderTabs();
+  document.body.classList.toggle("saldos-active", view.tab==="saldos");
   const c=document.getElementById("content");
   const hideHeader=view.tab==="totais"||view.tab==="menu";
   document.getElementById("header").style.display=hideHeader&&false?"none":"block";
