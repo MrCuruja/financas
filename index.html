@@ -603,8 +603,15 @@ function renderMenu(){
         <div class="menu-row" id="mSignOut" style="color:var(--saida)">${ic('<path d="M16 17l5-5-5-5M21 12H9M12 19H6a2 2 0 01-2-2V7a2 2 0 012-2h6" stroke="#c1481c"/>')}Sair<span class="chev" style="color:var(--saida)">›</span></div>
       </div>`
     : "";
+  const sync=(FB_ON && authUid)
+    ? `<div class="section-title">sincronização</div><div class="card">
+        <div class="menu-row" id="mPull">${ic('<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 011 6.85"/><path d="M12 11v8M9 16l3 3 3-3"/>')}Baixar da nuvem<span class="chev">›</span></div>
+        <div class="menu-row" id="mPush">${ic('<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 011 6.85"/><path d="M12 19v-8M9 14l3-3 3 3"/>')}Enviar este aparelho<span class="chev">›</span></div>
+      </div>`
+    : "";
   c.innerHTML=`<div class="scroll">
     ${acct}
+    ${sync}
     <div class="section-title">gerenciar</div>
     <div class="card">
       <div class="menu-row" id="mCards">${ic('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>')}Cartões<span class="chev">›</span></div>
@@ -628,7 +635,11 @@ function renderMenu(){
     </div>
     <div class="empty" style="padding:30px 20px;font-size:13px">Termômetro Financeiro · ${(FB_ON&&authUid)?"sincronizado com o Firebase":"dados salvos só neste dispositivo"}</div>
   </div>`;
-  if(FB_ON && authUid){ const so=document.getElementById("mSignOut"); if(so)so.onclick=()=>{ if(confirm("Sair da conta?")) auth.signOut(); }; }
+  if(FB_ON && authUid){
+    const so=document.getElementById("mSignOut"); if(so)so.onclick=()=>{ if(confirm("Sair da conta?")) auth.signOut(); };
+    const pl=document.getElementById("mPull"); if(pl)pl.onclick=()=>{ if(confirm("Baixar os dados da nuvem e substituir os deste aparelho?")) forcePull(); };
+    const ph=document.getElementById("mPush"); if(ph)ph.onclick=()=>{ if(confirm("Enviar os dados DESTE aparelho para a nuvem, substituindo o que estiver lá?")) forcePush(); };
+  }
   document.getElementById("mFull").onclick=toggleFullscreen;
   document.getElementById("mCards").onclick=openCardsSheet;
   document.getElementById("mInit").onclick=()=>promptValue("Saldo inicial","initial");
@@ -910,30 +921,52 @@ function setupAuthGate(){
     if(u){
       authUid=u.uid; authEmail=u.email; hideLogin(); subscribeCloud();
     }else{
-      authUid=null; authEmail=null; cloudReady=false;
+      authUid=null; authEmail=null; cloudReady=false; cloudRef=null;
       if(unsub){ unsub(); unsub=null; }
       showLogin();
     }
   });
 }
+let cloudRef=null;
+function adoptCloud(data){
+  state=data;
+  if(!state.settings) state.settings={initial:0,forecast:0,theme:"light"};
+  Store.save(state); applyTheme(); refresh();
+}
 function subscribeCloud(){
-  const ref=db.collection("users").doc(authUid);
-  unsub=ref.onSnapshot(snap=>{
+  cloudRef=db.collection("users").doc(authUid);
+  // includeMetadataChanges: precisamos distinguir cache x servidor
+  unsub=cloudRef.onSnapshot({includeMetadataChanges:true}, snap=>{
+    const md=snap.metadata||{};
+    // ignora ecos das nossas próprias gravações ainda não confirmadas
+    if(md.hasPendingWrites) return;
+    const fromServer=!md.fromCache;
+    // só liberamos gravação depois de falar com o servidor (evita sobrescrever a nuvem com o cache local)
+    if(fromServer) cloudReady=true;
+
     if(snap.exists){
-      cloudReady=true;
       const data=snap.data();
-      if(JSON.stringify(data)!==JSON.stringify(state)){
-        state=data; if(!state.settings)state.settings={initial:0,forecast:0,theme:"light"};
-        Store.save(state); applyTheme();
-      }
-      render();
-    }else{
-      // primeiro acesso desta conta: envia os dados locais atuais para a nuvem
-      cloudReady=true;
-      ref.set(state).catch(()=>{});
-      render();
+      if(JSON.stringify(data)!==JSON.stringify(state)) adoptCloud(data);
+    }else if(fromServer){
+      // servidor CONFIRMOU que o documento não existe -> realmente é o 1º acesso desta conta
+      cloudRef.set(state).catch(()=>{});
     }
-  }, ()=>{ toast("Sem acesso à nuvem — modo offline"); cloudReady=false; render(); });
+    // se (!exists && do cache): o documento ainda não chegou ao cache — aguarda o servidor, NÃO cria nada
+  }, ()=>{ toast("Sem acesso à nuvem — modo offline"); refresh(); });
+}
+// Sincronização manual (para resolver divergências entre aparelhos)
+function forcePull(){
+  if(!cloudRef){ toast("Entre na conta primeiro"); return; }
+  toast("Baixando da nuvem...");
+  cloudRef.get({source:"server"}).then(snap=>{
+    if(snap.exists){ adoptCloud(snap.data()); toast("Dados da nuvem carregados"); }
+    else toast("A nuvem ainda está vazia");
+  }).catch(()=>toast("Sem conexão com a nuvem"));
+}
+function forcePush(){
+  if(!cloudRef){ toast("Entre na conta primeiro"); return; }
+  cloudReady=true;
+  cloudRef.set(state).then(()=>toast("Enviado para a nuvem")).catch(()=>toast("Sem conexão com a nuvem"));
 }
 function authMsg(code){
   return ({
