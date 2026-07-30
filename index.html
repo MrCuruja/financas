@@ -251,6 +251,16 @@
   .txrow .txright{text-align:right;flex:0 0 auto;padding-left:8px;}
   .txrow .txval{font-size:21px;font-weight:800;white-space:nowrap;}
   .txrow .txlbl{font-size:16px;color:var(--txt-2);font-weight:600;margin-top:3px;}
+
+  /* ---------- Conexão / carregamento ---------- */
+  #netbar{position:fixed;top:0;left:0;right:0;z-index:120;max-width:460px;margin:0 auto;background:var(--saida);color:#fff;
+    font-weight:700;font-size:14px;text-align:center;padding:calc(var(--safe-top) + 11px) 16px 11px;
+    transform:translateY(-105%);transition:transform .25s;box-shadow:0 2px 10px rgba(0,0,0,.2);}
+  #netbar.show{transform:translateY(0);}
+  #cloudload{display:none;position:fixed;inset:0;z-index:90;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+  #cloudload.show{display:flex;}
+  .spinner{width:38px;height:38px;border:3px solid var(--line-strong);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
@@ -263,6 +273,8 @@
 <div class="toast" id="toast"></div>
 <div id="authgate"></div>
 <div id="dayview"></div>
+<div id="netbar"></div>
+<div id="cloudload"><div class="spinner"></div><div style="font-weight:700;color:var(--txt-2)">Sincronizando…</div></div>
 
 <!-- Firebase (compat) — se não configurar, o app roda em modo local -->
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -299,7 +311,7 @@ if(FB_ON){
     firebase.initializeApp(firebaseConfig);
     auth=firebase.auth();
     db=firebase.firestore();
-    db.enablePersistence({synchronizeTabs:true}).catch(()=>{}); // cache offline
+    // sem persistência offline: a nuvem é a única fonte de verdade
   }catch(e){ console.warn("Firebase init falhou:",e); }
 }
 
@@ -368,18 +380,20 @@ function seed(){
   return {tx,cards,tags,settings:{initial:0,forecast:0,theme:"light"}};
 }
 
-let state=Store.load();
-if(!state){ state=seed(); Store.save(state); }
+// Com Firebase: começa vazio e só carrega da nuvem (nada de cache local).
+// Sem Firebase (sem credenciais): modo local com localStorage.
+let state = FB_ON ? {tx:[],cards:[],tags:[],settings:{initial:0,forecast:0,theme:"light"}} : (Store.load()||seed());
 if(!state.settings)state.settings={initial:0,forecast:0,theme:"light"};
 function persist(){
-  Store.save(state); // cache local sempre
-  if(FB_ON && authUid && cloudReady && db){
-    clearTimeout(writeTimer);
-    writeTimer=setTimeout(()=>{
-      db.collection("users").doc(authUid).set(state)
-        .catch(()=>toast("Sem conexão — salvo localmente"));
-    },600);
-  }
+  if(!FB_ON){ Store.save(state); return; }                 // modo local
+  if(!(authUid && cloudReady && cloudRef)) return;           // ainda não sincronizou com a nuvem
+  if(!navigator.onLine) connSet(true);                       // avisa que está offline
+  clearTimeout(writeTimer);
+  writeTimer=setTimeout(()=>{
+    cloudRef.set(state)
+      .then(()=>connSet(false))
+      .catch(()=>connSet(true));
+  },400);
 }
 
 /* =================== Navegação de estado =================== */
@@ -923,36 +937,51 @@ function setupAuthGate(){
     }else{
       authUid=null; authEmail=null; cloudReady=false; cloudRef=null;
       if(unsub){ unsub(); unsub=null; }
+      clearTimeout(loadFallback); loadFallback=null;
+      hideLoading(); connSet(false);
       showLogin();
     }
   });
 }
-let cloudRef=null;
+let cloudRef=null, loadFallback=null;
 function adoptCloud(data){
   state=data;
   if(!state.settings) state.settings={initial:0,forecast:0,theme:"light"};
-  Store.save(state); applyTheme(); refresh();
+  applyTheme(); refresh();
 }
 function subscribeCloud(){
   cloudRef=db.collection("users").doc(authUid);
-  // includeMetadataChanges: precisamos distinguir cache x servidor
+  showLoading();
   unsub=cloudRef.onSnapshot({includeMetadataChanges:true}, snap=>{
     const md=snap.metadata||{};
     // ignora ecos das nossas próprias gravações ainda não confirmadas
     if(md.hasPendingWrites) return;
     const fromServer=!md.fromCache;
-    // só liberamos gravação depois de falar com o servidor (evita sobrescrever a nuvem com o cache local)
-    if(fromServer) cloudReady=true;
+    connSet(!fromServer);                 // snapshot vindo do cache = sem conexão
 
-    if(snap.exists){
-      const data=snap.data();
-      if(JSON.stringify(data)!==JSON.stringify(state)) adoptCloud(data);
-    }else if(fromServer){
-      // servidor CONFIRMOU que o documento não existe -> realmente é o 1º acesso desta conta
-      cloudRef.set(state).catch(()=>{});
+    if(fromServer){
+      cloudReady=true;                    // só libera gravação após falar com o servidor
+      clearTimeout(loadFallback);
+      if(snap.exists){
+        const data=snap.data();
+        if(JSON.stringify(data)!==JSON.stringify(state)) adoptCloud(data);
+      }else{
+        // servidor CONFIRMOU que o documento não existe -> 1º acesso (cria vazio)
+        cloudRef.set(state).catch(()=>connSet(true));
+      }
+      hideLoading();
+    }else{
+      // veio do cache (provavelmente offline): nunca sobrescreve a nuvem
+      if(snap.exists){
+        const data=snap.data();
+        if(JSON.stringify(data)!==JSON.stringify(state)) adoptCloud(data);
+        hideLoading();
+      }else if(!loadFallback){
+        // sem resposta do servidor: espera um pouco e mostra o app (vazio) com o aviso
+        loadFallback=setTimeout(hideLoading,2500);
+      }
     }
-    // se (!exists && do cache): o documento ainda não chegou ao cache — aguarda o servidor, NÃO cria nada
-  }, ()=>{ toast("Sem acesso à nuvem — modo offline"); refresh(); });
+  }, ()=>{ connSet(true); hideLoading(); refresh(); });
 }
 // Sincronização manual (para resolver divergências entre aparelhos)
 function forcePull(){
@@ -1038,6 +1067,20 @@ function toggleFullscreen(){
     const ex=d.exitFullscreen||d.webkitExitFullscreen; if(ex) ex.call(d);
   }
   setTimeout(()=>{ if(view.tab==="menu")render(); },200);
+}
+
+/* =================== Conectividade / carregamento =================== */
+let connLost=false;
+function connSet(lost){
+  connLost=!!lost;
+  const b=document.getElementById("netbar");
+  if(b){ b.textContent="Sem conexão — as alterações não serão salvas"; b.classList.toggle("show", connLost && FB_ON); }
+}
+function showLoading(){ const e=document.getElementById("cloudload"); if(e)e.classList.add("show"); }
+function hideLoading(){ const e=document.getElementById("cloudload"); if(e)e.classList.remove("show"); }
+if(FB_ON){
+  window.addEventListener("offline", ()=>connSet(true));
+  window.addEventListener("online", ()=>connSet(false));
 }
 
 /* =================== Boot =================== */
