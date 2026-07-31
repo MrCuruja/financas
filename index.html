@@ -363,6 +363,25 @@
     background:var(--accent);margin-left:8px;vertical-align:middle;}
   .perf-row .pv{font-size:21px;font-weight:800;white-space:nowrap;}
 
+  /* ---------- Economizado (ano) ---------- */
+  #ecoview{display:none;position:fixed;inset:0;z-index:55;background:var(--surface);overflow-y:auto;
+    transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
+  #ecoview.show{transform:translateX(0);}
+  .eco-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--bg);}
+  .eco-screen .topbar{background:var(--surface);border-bottom:1px solid var(--line);}
+  .eco-big{font-size:56px;font-weight:800;letter-spacing:-1.5px;line-height:1.02;}
+  .eco-block{padding:18px 20px 22px;background:var(--surface);border-bottom:1px solid var(--line);}
+  .eco-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .eco-head .nm{font-size:21px;font-weight:800;letter-spacing:-.2px;}
+  .eco-head .pc{font-size:21px;font-weight:800;}
+  .eco-barline{display:flex;align-items:center;gap:10px;}
+  .eco-vals{display:flex;justify-content:space-between;gap:12px;margin-top:14px;}
+  .eco-vals .col .k{font-size:15px;color:var(--txt-2);font-weight:700;}
+  .eco-vals .col .v{font-size:19px;font-weight:800;margin-top:3px;}
+  .eco-vals .col.r{text-align:right;}
+  .eco-block.eco-now .nm::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--accent);margin-left:8px;vertical-align:middle;}
+
   /* ---------- Conexão / carregamento ---------- */
   #netbar{position:fixed;top:0;left:0;right:0;z-index:120;max-width:460px;margin:0 auto;background:var(--saida);color:#fff;
     font-weight:700;font-size:14px;text-align:center;padding:calc(var(--safe-top) + 11px) 16px 11px;
@@ -386,6 +405,7 @@
 <div id="authgate"></div>
 <div id="dayview"></div>
 <div id="perfview"></div>
+<div id="ecoview"></div>
 <div id="netbar"></div>
 <div id="cloudload"><div class="spinner"></div><div style="font-weight:700;color:var(--txt-2)">Sincronizando…</div></div>
 
@@ -728,8 +748,8 @@ function renderTotais(){
       <div class="top"><div class="name">performance <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:${perfColor}">${brl(perf)}</div><div class="cap">${perfCap}</div></div></div>
       <div class="chips">${chip("entrada")}<span class="op">−</span>${chip("saida")}<span class="op">−</span>${chip("diario")}<span class="op">−</span>${chip("economia")}<span class="op">−</span>${chip("cartao")}<span class="op">−</span><span class="badge sm ring">D</span></div>
     </div>
-    <div class="calc">
-      <div class="top"><div class="name">economizado</div><div><div class="big">${pct.toFixed(0)}%</div><div class="cap">${pct<=0?"nada guardado":"da renda guardada"}</div></div></div>
+    <div class="calc" id="ecoCard" style="cursor:pointer">
+      <div class="top"><div class="name">economizado <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${pct.toFixed(0)}%</div><div class="cap">${pct<=0?"nada guardado":"da renda guardada"}</div></div></div>
       <div class="chips"><span class="badge sm economia">E</span><div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>${chip("entrada")}</div>
     </div>
     <div class="calc">
@@ -761,6 +781,7 @@ function renderTotais(){
     view.filter=el.dataset.mov; switchTab("saldos");
   });
   const _pc=document.getElementById("perfCard"); if(_pc)_pc.onclick=openPerf;
+  const _ec=document.getElementById("ecoCard"); if(_ec)_ec.onclick=openEco;
 }
 function movRow(type,val){
   const f=({entrada:"entradas",saida:"saidas",diario:"diarios",economia:"economias",cartao:"cartao"})[type];
@@ -869,6 +890,121 @@ function renderPerf(){
   document.getElementById("pfNext").onclick=()=>{ perfYear++; renderPerf(); };
   document.getElementById("pfHelpHd").onclick=()=>{ perfHelp=!perfHelp;
     document.getElementById("pfHelp").classList.toggle("open",perfHelp); };
+  const _np=g.querySelector(".scroll"); if(_np)_np.scrollTop=_py;
+  requestAnimationFrame(()=>g.classList.add("show"));
+}
+
+/* =================== Economizado do ano =================== */
+let ecoOpen=false, ecoYear=new Date().getFullYear(), ecoHelp=false;
+
+/* dados de economia do mês: economias, entradas e % guardado */
+function monthSaving(y,m){
+  const t=monthTotals(y,m);
+  const pct=t.entrada>0?(t.economia/t.entrada*100):0;
+  return {econ:t.economia, ent:t.entrada, pct};
+}
+
+function openEco(){
+  ecoOpen=true; ecoYear=view.y; renderEco();
+  navPush(()=>{ ecoOpen=false; const g=document.getElementById("ecoview");
+    g.classList.remove("show");
+    setTimeout(()=>{ if(!ecoOpen){ g.style.display="none"; g.innerHTML=""; } },460); });
+}
+function closeEco(){ if(ecoOpen) navBack(); }
+
+/* gráfico de barras (mesmo padrão da performance), só valores positivos 0..max */
+function savChartSVG(pcts){
+  const W=372,H=178,top=12,botLabels=26,chartH=H-top-botLabels;
+  const max=Math.max(1,...pcts);
+  const base=top+chartH;
+  const slotW=W/12, barW=slotW*0.46;
+  const now=new Date(), curM=(ecoYear===now.getFullYear())?now.getMonth():-1;
+  let bars="";
+  pcts.forEach((p,i)=>{
+    const cx=i*slotW+slotW/2, x=cx-barW/2;
+    if(p>0){
+      const h=Math.max(2,p/max*chartH), y=base-h;
+      bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="var(--economia)" opacity="${i===curM?1:.88}"/>`;
+    }
+    const lblCol=i===curM?"var(--accent)":"var(--txt-3)";
+    const lblWt=i===curM?"800":"700";
+    bars+=`<text x="${cx.toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="12" font-weight="${lblWt}" fill="${lblCol}">${MN[i][0].toUpperCase()}</text>`;
+  });
+  const baseLine=`<line x1="0" y1="${base.toFixed(1)}" x2="${W}" y2="${base.toFixed(1)}" stroke="var(--line-strong)" stroke-width="1"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${baseLine}${bars}</svg>`;
+}
+
+function savBarline(pct){
+  const w=Math.max(0,Math.min(100,pct));
+  return `<div class="eco-barline"><span class="badge sm economia">E</span><div class="bar"><i style="width:${w}%"></i></div>${badge("entrada","sm")}</div>`;
+}
+function savVals(econ,ent){
+  return `<div class="eco-vals"><div class="col"><div class="k">economias</div><div class="v">${brl(econ)}</div></div><div class="col r"><div class="k">entradas</div><div class="v">${brl(ent)}</div></div></div>`;
+}
+
+function renderEco(){
+  const g=document.getElementById("ecoview");
+  const _pp=g.querySelector(".scroll"); const _py=_pp?_pp.scrollTop:0;
+  g.style.display="block";
+  const now=new Date();
+  const months=[]; for(let m=0;m<12;m++) months.push(monthSaving(ecoYear,m));
+  const yEcon=months.reduce((a,x)=>a+x.econ,0);
+  const yEnt=months.reduce((a,x)=>a+x.ent,0);
+  const yPct=yEnt>0?(yEcon/yEnt*100):0;
+  const pcts=months.map(x=>x.pct);
+
+  const rows=months.map((x,i)=>{
+    const isNow=(ecoYear===now.getFullYear()&&i===now.getMonth());
+    return `<div class="eco-block${isNow?' eco-now':''}">
+      <div class="eco-head"><span class="nm">${MN_FULL[i]}</span><span class="pc">${x.pct.toFixed(0)}%</span></div>
+      ${savBarline(x.pct)}
+      ${savVals(x.econ,x.ent)}
+    </div>`;
+  }).join("");
+
+  g.innerHTML=`<div class="eco-screen">
+    <div class="topbar">
+      <button class="arrow dv-plain" id="ecBack">←</button>
+      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">economizado</div>
+      <div style="width:34px"></div>
+    </div>
+    <div class="perf-year">
+      <button class="arrow" id="ecPrev">‹</button>
+      <div class="yr">${ecoYear}</div>
+      <button class="arrow" id="ecNext">›</button>
+    </div>
+    <div class="perf-help${ecoHelp?' open':''}" id="ecHelp">
+      <div class="hd" id="ecHelpHd">como funciona o economizado?<span class="cx">▾</span></div>
+      <div class="bd"><div class="inner">
+        O economizado mostra <b>quanto da sua renda você guardou</b> em cada mês:
+        é o total lançado como <b style="color:var(--economia)">economia</b> dividido
+        pelas suas <b>entradas</b> do mês.<br><br>
+        Ex.: se você recebeu R$ 4.000 e guardou R$ 400, o economizado é <b>10%</b>.
+        Meses sem entradas aparecem como 0%.
+      </div></div>
+    </div>
+    <div class="section-title">total no ano</div>
+    <div class="eco-block">
+      <div class="eco-big">${yPct.toFixed(0)}%</div>
+      <div style="margin-top:16px">${savBarline(yPct)}</div>
+      ${savVals(yEcon,yEnt)}
+    </div>
+    <div class="perf-chart">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 12px">
+        <span style="font-size:14px;font-weight:700;color:var(--txt-2)">economizado por mês</span>
+        <span style="font-size:19px;font-weight:800;color:var(--economia)">${yPct.toFixed(0)}%</span>
+      </div>
+      ${yEnt>0?savChartSVG(pcts):'<div class="empty" style="padding:22px 6px">Nenhuma entrada em '+ecoYear+'.</div>'}
+    </div>
+    <div class="section-title">total por mês</div>
+    <div class="scroll">${rows}</div>
+  </div>`;
+
+  document.getElementById("ecBack").onclick=closeEco;
+  document.getElementById("ecPrev").onclick=()=>{ ecoYear--; renderEco(); };
+  document.getElementById("ecNext").onclick=()=>{ ecoYear++; renderEco(); };
+  document.getElementById("ecHelpHd").onclick=()=>{ ecoHelp=!ecoHelp;
+    document.getElementById("ecHelp").classList.toggle("open",ecoHelp); };
   const _np=g.querySelector(".scroll"); if(_np)_np.scrollTop=_py;
   requestAnimationFrame(()=>g.classList.add("show"));
 }
