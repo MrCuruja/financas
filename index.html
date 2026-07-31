@@ -123,8 +123,6 @@
     background:var(--surface);min-height:64px;position:relative;}
   .balrow .day{display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:600;color:var(--txt);position:relative;}
   .balrow .day.today{background:var(--txt);color:#fff;}
-  .balrow.has .day::before{content:"";position:absolute;top:0;left:0;border-style:solid;border-width:16px 16px 0 0;
-    border-color:var(--economia) transparent transparent transparent;}
   .balrow .amt{overflow:hidden;font-size:20px;font-weight:600;}
   .balrow .amt .val{margin-left:auto;text-align:right;}
   .balrow .amt.zero{color:var(--txt-3);} .balrow .amt.zero .badge{background:#d2d2d8;}
@@ -143,8 +141,6 @@
   .subrow:first-child{border-top:none;}
   .subrow .lead{display:flex;align-items:center;justify-content:center;position:relative;align-self:stretch;}
   .subrow .lead .n{font-size:19px;font-weight:600;}
-  .subrow.has .lead::before{content:"";position:absolute;top:0;left:0;border-style:solid;border-width:16px 16px 0 0;
-    border-color:var(--economia) transparent transparent transparent;}
   .subrow .amt{overflow:hidden;font-size:19px;font-weight:600;}
   .subrow .amt .val{margin-left:auto;}
   .subrow .amt.zero{color:var(--txt-3);}
@@ -153,6 +149,7 @@
   /* dia concluído (marcação manual) — só o canto verde no número do dia */
   .balrow .day[data-done],.subrow .lead[data-done]{cursor:pointer;}
   .balrow.done .day::before,.dayblock.done .subrow:first-child .lead::before{
+    content:"";position:absolute;top:0;left:0;border-style:solid;border-width:16px 16px 0 0;
     border-color:var(--done) transparent transparent transparent;}
   .done-toggle{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;border-radius:14px;
     background:var(--surface-2);border:1px solid var(--line-strong);color:var(--txt);font-size:16px;font-weight:700;}
