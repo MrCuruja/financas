@@ -150,12 +150,10 @@
   .subrow .amt.zero{color:var(--txt-3);}
   .subrow .bal{align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;font-weight:700;font-size:18px;}
 
-  /* dia concluído (marcação manual) */
+  /* dia concluído (marcação manual) — só o canto verde no número do dia */
   .balrow .day[data-done],.subrow .lead[data-done]{cursor:pointer;}
   .balrow.done .day::before,.dayblock.done .subrow:first-child .lead::before{
     border-color:var(--done) transparent transparent transparent;}
-  .balrow.done .day::after,.dayblock.done .subrow:first-child .lead::after{
-    content:"✓";position:absolute;top:-2px;left:1px;font-size:11px;line-height:1;font-weight:900;color:#fff;}
   .done-toggle{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;border-radius:14px;
     background:var(--surface-2);border:1px solid var(--line-strong);color:var(--txt);font-size:16px;font-weight:700;}
   .done-toggle .dt-box{width:24px;height:24px;flex:0 0 auto;border-radius:7px;border:2px solid var(--txt-3);
@@ -437,7 +435,8 @@ const TYPES={
 };
 const TYPE_ORDER=["entrada","saida","diario","economia","cartao"];
 const SALDO_ORDER=["todas","entradas","saidas","diarios","economias","cartao"];
-const SWIPE_ORDER=["entradas","saidas","diarios","economias","cartao"];
+const SWIPE_ORDER=["todas","entradas","saidas","diarios","economias","cartao"];
+let saldosScrollY=0;
 const TAG_COLORS=["#e9df7f","#a9cce3","#c7b6e8","#d9d9d9","#a7e0a7","#7fd68a","#f5c396","#f2a7c0","#8fd0d6","#f7b7b7"];
 
 function badgeSVG(glyph){
@@ -564,6 +563,7 @@ function balStyle(bal,maxAbs){
 /* =================== Render: Saldos =================== */
 function renderSaldos(){
   const c=document.getElementById("content");
+  const _ps=document.getElementById("saldosScroll"); if(_ps) saldosScrollY=_ps.scrollTop;
   const dim=daysInMonth(view.y,view.m);
   const bals=dailyBalances(view.y,view.m);
   const maxAbs=Math.max(1,...bals.slice(1).map(Math.abs));
@@ -618,6 +618,7 @@ function renderSaldos(){
     }
   }
   c.innerHTML=sub+`<div class="scroll saldos-scroll" id="saldosScroll"><div class="saldos-track" id="saldosTrack">${rows}</div></div>`;
+  const _ns=document.getElementById("saldosScroll"); if(_ns) _ns.scrollTop=saldosScrollY;
   document.getElementById("filterBtn").onclick=()=>openFilterSheet(view.filter,f2=>{ view.filter=f2; render(); });
   c.querySelectorAll("[data-done]").forEach(el=>el.onclick=e=>{ e.stopPropagation(); toggleDone(el.dataset.done); });
   c.querySelectorAll("[data-day]").forEach(el=>el.onclick=()=>openDay(dstr(view.y,view.m,+el.dataset.day)));
@@ -654,7 +655,7 @@ function attachSaldosSwipe(){
 }
 function commitSwipe(dir,scroll){
   let idx=SWIPE_ORDER.indexOf(view.filter);
-  if(idx===-1) idx = dir>0 ? -1 : SWIPE_ORDER.length;   // vindo de "todas"
+  if(idx===-1) idx=0;
   const target=SWIPE_ORDER[(idx+dir+SWIPE_ORDER.length)%SWIPE_ORDER.length];
   const sc=scroll.scrollTop;
   scroll.classList.add("sliding");
@@ -893,7 +894,9 @@ function shiftDay(delta){
 }
 function renderDay(){
   if(!dayOpen)return;
-  const g=document.getElementById("dayview"); g.style.display="block";
+  const g=document.getElementById("dayview"); 
+  const _pd=g.querySelector(".scroll"); const _dy=_pd?_pd.scrollTop:0;
+  g.style.display="block";
   const D=+dayOpen.slice(8,10), Mo=dayOpen.slice(5,7);
   const label=`${pad(D)}/${Mo}`;
   const f=view.dayFilter;
@@ -927,9 +930,15 @@ function renderDay(){
   document.getElementById("dvAdd").onclick=()=>openAddSheet(null,dayOpen);
   document.getElementById("dvPrev").onclick=()=>shiftDay(-1);
   document.getElementById("dvNext").onclick=()=>shiftDay(1);
-  document.getElementById("dvDone").onclick=()=>{ toggleDone(dayOpen); renderDay(); };
+  document.getElementById("dvDone").onclick=()=>{
+    const on=toggleDone(dayOpen);
+    const b=document.getElementById("dvDone");
+    b.classList.toggle("on",on);
+    b.innerHTML=`<span class="dt-box">${on?'✓':''}</span>${on?'dia concluído':'marcar dia como concluído'}`;
+  };
   document.getElementById("dvFilter").onclick=()=>openFilterSheet(view.dayFilter,f2=>{ view.dayFilter=f2; renderDay(); });
   g.querySelectorAll("[data-tx]").forEach(el=>el.onclick=()=>openTxSheet(el.dataset.tx));
+  const _nd=g.querySelector(".scroll"); if(_nd) _nd.scrollTop=_dy;
   requestAnimationFrame(()=>g.classList.add("show"));
 }
 window.closeDay=closeDay;
@@ -1103,19 +1112,24 @@ function openAddSheet(txId,presetDate){
     else if(repMode!=="none"){
       const n=Math.max(2,repCount|0);
       const series=uid();
-      const base=new Date(obj.date+"T12:00:00");
+      const by=+obj.date.slice(0,4), bm=+obj.date.slice(5,7)-1, bd=+obj.date.slice(8,10);
       const per=[];
       if(repMode==="parcelado"){
         const cents=Math.round(amt*100), q=Math.floor(cents/n), r=cents-q*n;
         for(let k=0;k<n;k++) per.push((q+(k<r?1:0))/100);
       } else { for(let k=0;k<n;k++) per.push(amt); }
       for(let k=0;k<n;k++){
-        const d=new Date(base);
-        if(repMode==="weekly") d.setDate(d.getDate()+7*k);
-        else if(repMode==="daily") d.setDate(d.getDate()+k);
-        else d.setMonth(d.getMonth()+k);
+        let dateStr;
+        if(repMode==="weekly"||repMode==="daily"){
+          const d=new Date(obj.date+"T12:00:00");
+          d.setDate(d.getDate()+(repMode==="weekly"?7*k:k));
+          dateStr=dstr(d.getFullYear(),d.getMonth(),d.getDate());
+        } else {                                   // mensal / parcelado: soma meses e limita ao último dia do mês
+          const tot=bm+k, ny=by+Math.floor(tot/12), nm=((tot%12)+12)%12;
+          dateStr=dstr(ny,nm,Math.min(bd,daysInMonth(ny,nm)));
+        }
         const desc = repMode==="parcelado" ? ((obj.desc||TYPE_WORD[obj.type])+` (${k+1}/${n})`) : obj.desc;
-        state.tx.push({id:uid(),...obj,amount:per[k],desc,date:dstr(d.getFullYear(),d.getMonth(),d.getDate()),series,recur:true});
+        state.tx.push({id:uid(),...obj,amount:per[k],desc,date:dateStr,series,recur:true});
       }
       toast(`${n} lançamentos adicionados`);
     }
