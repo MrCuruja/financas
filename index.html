@@ -387,6 +387,19 @@
     transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
   #custoview.show{transform:translateX(0);}
 
+  /* ---------- Diário médio (ano) — reaproveita .perf-* ---------- */
+  #mediaview{display:none;position:fixed;inset:0;z-index:55;background:var(--surface);overflow-y:auto;
+    transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
+  #mediaview.show{transform:translateX(0);}
+  .med-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    padding:20px;border-bottom:1px solid var(--line);background:var(--surface);}
+  .med-row .pm{font-size:21px;font-weight:800;letter-spacing:-.2px;padding-top:1px;}
+  .med-row.now .pm::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--accent);margin-left:8px;vertical-align:middle;}
+  .med-r{text-align:right;white-space:nowrap;}
+  .med-r .mv{font-size:21px;font-weight:800;}
+  .med-r .ms{font-size:15px;color:var(--txt-3);font-weight:700;margin-top:5px;}
+
   /* ---------- Conexão / carregamento ---------- */
   #netbar{position:fixed;top:0;left:0;right:0;z-index:120;max-width:460px;margin:0 auto;background:var(--saida);color:#fff;
     font-weight:700;font-size:14px;text-align:center;padding:calc(var(--safe-top) + 11px) 16px 11px;
@@ -412,6 +425,7 @@
 <div id="perfview"></div>
 <div id="ecoview"></div>
 <div id="custoview"></div>
+<div id="mediaview"></div>
 <div id="netbar"></div>
 <div id="cloudload"><div class="spinner"></div><div style="font-weight:700;color:var(--txt-2)">Sincronizando…</div></div>
 
@@ -762,8 +776,8 @@ function renderTotais(){
       <div class="top"><div class="name">custo de vida <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(custo)}</div><div class="cap">${custoCap}</div></div></div>
       <div class="chips">${chip("saida")}<span class="op">+</span>${chip("diario")}<span class="op">+</span>${chip("cartao")}<span class="op">+</span><span class="badge sm ring">D</span></div>
     </div>
-    <div class="calc">
-      <div class="top"><div class="name">diário médio</div><div><div class="big">${brl(medio)}</div><div class="cap"><span class="badge sm ring" style="display:inline-flex;vertical-align:middle;margin-right:4px">D</span>${brl(fc)}</div></div></div>
+    <div class="calc" id="mediaCard" style="cursor:pointer">
+      <div class="top"><div class="name">diário médio <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(medio)}</div><div class="cap"><span class="badge sm ring" style="display:inline-flex;vertical-align:middle;margin-right:4px">D</span>${brl(fc)}</div></div></div>
       <div class="chips"><span class="badge sm diario">D</span><span style="color:var(--txt-2);font-weight:700">/ ${divDays} dias</span></div>
     </div>
 
@@ -789,6 +803,7 @@ function renderTotais(){
   const _pc=document.getElementById("perfCard"); if(_pc)_pc.onclick=openPerf;
   const _ec=document.getElementById("ecoCard"); if(_ec)_ec.onclick=openEco;
   const _cc=document.getElementById("custoCard"); if(_cc)_cc.onclick=openCusto;
+  const _mc=document.getElementById("mediaCard"); if(_mc)_mc.onclick=openMedia;
 }
 function movRow(type,val){
   const f=({entrada:"entradas",saida:"saidas",diario:"diarios",economia:"economias",cartao:"cartao"})[type];
@@ -1097,6 +1112,89 @@ function renderCusto(){
   document.getElementById("cvNext").onclick=()=>{ custoYear++; renderCusto(); };
   document.getElementById("cvHelpHd").onclick=()=>{ custoHelp=!custoHelp;
     document.getElementById("cvHelp").classList.toggle("open",custoHelp); };
+  const _np=g.querySelector(".scroll"); if(_np)_np.scrollTop=_py;
+  requestAnimationFrame(()=>g.classList.add("show"));
+}
+
+/* =================== Diário médio do ano =================== */
+let mediaOpen=false, mediaYear=new Date().getFullYear(), mediaHelp=false;
+
+/* diário médio do mês: total de diários ÷ dias do mês (dias cheios em todos os meses) */
+function monthMedia(y,m){
+  const t=monthTotals(y,m);
+  const days=daysInMonth(y,m);
+  return {total:t.diario, days, medio:days>0?t.diario/days:0};
+}
+
+function openMedia(){
+  mediaOpen=true; mediaYear=view.y; renderMedia();
+  navPush(()=>{ mediaOpen=false; const g=document.getElementById("mediaview");
+    g.classList.remove("show");
+    setTimeout(()=>{ if(!mediaOpen){ g.style.display="none"; g.innerHTML=""; } },460); });
+}
+function closeMedia(){ if(mediaOpen) navBack(); }
+
+function renderMedia(){
+  const g=document.getElementById("mediaview");
+  const _pp=g.querySelector(".scroll"); const _py=_pp?_pp.scrollTop:0;
+  g.style.display="block";
+  const now=new Date();
+  const months=[]; for(let m=0;m<12;m++) months.push(monthMedia(mediaYear,m));
+  const medios=months.map(x=>x.medio);
+  const yTotal=months.reduce((a,x)=>a+x.total,0);
+  const yDays=months.reduce((a,x)=>a+x.days,0);
+  const yearAvg=yDays>0?yTotal/yDays:0;
+  const anyData=months.some(x=>x.total>0);
+  const curM=(mediaYear===now.getFullYear())?now.getMonth():-1;
+
+  const rows=months.map((x,i)=>{
+    const isNow=(mediaYear===now.getFullYear()&&i===now.getMonth());
+    return `<div class="med-row${isNow?' now':''}">
+      <span class="pm">${MN_FULL[i]}</span>
+      <div class="med-r">
+        <div class="mv">${brl(x.medio)}</div>
+        <div class="ms">${brl(x.total)} / ${x.days}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  g.innerHTML=`<div class="perf-screen">
+    <div class="topbar">
+      <button class="arrow dv-plain" id="mdBack">←</button>
+      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">diário médio</div>
+      <div style="width:34px"></div>
+    </div>
+    <div class="perf-year">
+      <button class="arrow" id="mdPrev">‹</button>
+      <div class="yr">${mediaYear}</div>
+      <button class="arrow" id="mdNext">›</button>
+    </div>
+    <div class="perf-help${mediaHelp?' open':''}" id="mdHelp">
+      <div class="hd" id="mdHelpHd">como funciona o diário médio?<span class="cx">▾</span></div>
+      <div class="bd"><div class="inner">
+        O diário médio mostra <b>quanto você gastou por dia</b> em cada mês, em
+        <b style="color:var(--diario)">diários</b>: é o total de diários do mês
+        dividido pela quantidade de dias daquele mês.<br><br>
+        Ex.: R$ 399,63 em diários num mês de 31 dias = <b>R$ 12,89</b> por dia.
+        Meses sem diários aparecem como R$ 0,00.
+      </div></div>
+    </div>
+    <div class="perf-chart">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 12px">
+        <span style="font-size:14px;font-weight:700;color:var(--txt-2)">média diária no ano</span>
+        <span style="font-size:19px;font-weight:800;color:var(--diario)">${brl(yearAvg)}</span>
+      </div>
+      ${anyData?posBarChartSVG(medios,"var(--diario)",curM):'<div class="empty" style="padding:22px 6px">Nenhum diário em '+mediaYear+'.</div>'}
+    </div>
+    <div class="section-title">média por mês</div>
+    <div class="scroll">${rows}</div>
+  </div>`;
+
+  document.getElementById("mdBack").onclick=closeMedia;
+  document.getElementById("mdPrev").onclick=()=>{ mediaYear--; renderMedia(); };
+  document.getElementById("mdNext").onclick=()=>{ mediaYear++; renderMedia(); };
+  document.getElementById("mdHelpHd").onclick=()=>{ mediaHelp=!mediaHelp;
+    document.getElementById("mdHelp").classList.toggle("open",mediaHelp); };
   const _np=g.querySelector(".scroll"); if(_np)_np.scrollTop=_py;
   requestAnimationFrame(()=>g.classList.add("show"));
 }
