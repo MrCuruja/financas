@@ -120,10 +120,10 @@
 
   /* saldos rows */
   .balrow{display:grid;grid-template-columns:46px 1fr 150px;align-items:stretch;border-bottom:1px solid var(--line);
-    background:var(--surface);min-height:64px;position:relative;}
-  .balrow .day{display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:600;color:var(--txt);position:relative;}
+    background:var(--surface);min-height:54px;position:relative;}
+  .balrow .day{display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;color:var(--txt);position:relative;}
   .balrow .day.today{background:var(--txt);color:#fff;}
-  .balrow .amt{overflow:hidden;font-size:20px;font-weight:600;}
+  .balrow .amt{overflow:hidden;font-size:17px;font-weight:600;}
   .balrow .amt .val{margin-left:auto;text-align:right;}
   .balrow .amt.zero{color:var(--txt-3);} .balrow .amt.zero .badge{background:#d2d2d8;}
   [data-theme="dark"] .balrow .amt.zero .badge{background:#3a3a3d;}
@@ -131,20 +131,20 @@
   .amt-slide{display:flex;align-items:center;gap:12px;padding:0 6px 0 4px;height:100%;min-width:0;
     transform:translateX(var(--sldx,0));opacity:var(--sldo,1);}
   .saldos-scroll.sliding .amt-slide{transition:transform var(--dur) var(--ease-ios),opacity var(--dur) var(--ease-ios);}
-  .balrow .bal{display:flex;align-items:center;justify-content:flex-end;padding:0 16px;font-size:19px;font-weight:600;
-    border-left:1px solid var(--line);}
+  .balrow .bal{display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font-size:16.5px;font-weight:600;
+    white-space:nowrap;border-left:1px solid var(--line);}
 
   /* todas grouped */
   .dayblock{border-bottom:1px solid var(--line-strong);}
-  .subrow{display:grid;grid-template-columns:46px 1fr 150px;align-items:center;min-height:52px;background:var(--surface);
+  .subrow{display:grid;grid-template-columns:46px 1fr 150px;align-items:center;min-height:46px;background:var(--surface);
     border-top:1px solid var(--line);}
   .subrow:first-child{border-top:none;}
   .subrow .lead{display:flex;align-items:center;justify-content:center;position:relative;align-self:stretch;}
-  .subrow .lead .n{font-size:19px;font-weight:600;}
-  .subrow .amt{overflow:hidden;font-size:19px;font-weight:600;}
+  .subrow .lead .n{font-size:17px;font-weight:600;}
+  .subrow .amt{overflow:hidden;font-size:17px;font-weight:600;}
   .subrow .amt .val{margin-left:auto;}
   .subrow .amt.zero{color:var(--txt-3);}
-  .subrow .bal{align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 16px;font-weight:700;font-size:18px;}
+  .subrow .bal{align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font-weight:700;font-size:16px;white-space:nowrap;}
 
   /* dia concluído (marcação manual) — só o canto verde no número do dia */
   .balrow .day[data-done],.subrow .lead[data-done]{cursor:pointer;}
