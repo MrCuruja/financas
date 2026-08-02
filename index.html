@@ -463,8 +463,10 @@
       font-size:12px;font-weight:800;letter-spacing:-.2px;border-bottom:1px solid var(--line-strong);}
     .stable thead th span{margin-left:6px;vertical-align:middle;}
     .stable thead .tcol-bal{text-align:right;}
-    .tcol-day{width:52px;text-align:center!important;}
-    .tcol-bal{width:146px;}
+    .stable col.cg-day{width:52px;}
+    .stable col.cg-bal{width:146px;}
+    .tcol-day{text-align:center!important;}
+    .tcol-bal{text-align:right;}
     .stable .badge{display:inline-flex;vertical-align:middle;width:20px;height:20px;font-size:10.5px;flex:0 0 auto;}
     .stable .badge svg{width:11px;height:11px;}
     .cellwrap{display:flex;align-items:center;gap:5px;min-width:0;}
@@ -496,8 +498,8 @@
     .yearnav .arrow{font-size:26px;color:var(--txt-3);width:34px;height:34px;display:flex;align-items:center;justify-content:center;}
 
     .year-strip{overflow:auto;display:flex;align-items:flex-start;background:var(--bg);
-      -webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
-    .monthcard{flex:0 0 600px;width:600px;background:var(--surface);border-right:1px solid var(--line-strong);align-self:stretch;}
+      -webkit-overflow-scrolling:touch;overscroll-behavior:contain;scroll-snap-type:x mandatory;}
+    .monthcard{flex:0 0 100%;width:100%;min-width:0;scroll-snap-align:start;background:var(--surface);border-right:1px solid var(--line-strong);align-self:stretch;}
     .monthcard .stable{width:100%;}
     /* título do mês (linha do thead com colspan) */
     .mc-title-row th{position:sticky;top:0;z-index:9;height:50px!important;padding:0 16px!important;
@@ -2129,7 +2131,11 @@ function buildMonthTable(y,m,opts){
   cols.forEach(tp=>foot+=`<td class="tval"><span class="cellwrap">${badge(tp)}<span class="v">${brl(tot[tp])}</span></span></td>`);
   foot+=`<td class="tbal"></td></tr>`;
 
-  return `<table class="stable"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table>`;
+  let colg=`<colgroup><col class="cg-day">`;
+  cols.forEach(()=>colg+=`<col class="cg-t">`);
+  colg+=`<col class="cg-bal"></colgroup>`;
+
+  return `<table class="stable">${colg}<thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table>`;
 }
 
 function bindSaldosCells(c){
