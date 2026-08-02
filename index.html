@@ -523,8 +523,14 @@
     body.wide[data-tab="menu"] #content{max-width:720px;margin:0 auto;padding:24px 26px 60px;}
     body.wide[data-tab="menu"] #content .card{border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:8px;}
 
-    /* overlays (dia/ano) como painel centralizado */
-    body.wide .day-screen,body.wide .perf-screen,body.wide .eco-screen{box-shadow:var(--shadow);}
+    /* ---------- Detalhes no modo horizontal (dia, movimentações e cards do Totais) ---------- */
+    body.wide #dayview,body.wide #movview,body.wide #perfview,
+    body.wide #ecoview,body.wide #custoview,body.wide #mediaview{left:236px;background:var(--bg);}
+    body.wide .day-screen,body.wide .perf-screen,body.wide .eco-screen{
+      max-width:820px;margin:24px auto 48px;min-height:0;background:var(--surface);
+      border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow);}
+    body.wide .day-screen .topbar,body.wide .perf-screen .topbar,body.wide .eco-screen .topbar{
+      border-bottom:1px solid var(--line);}
   }
 </style>
 </head>
