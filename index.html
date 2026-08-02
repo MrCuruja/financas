@@ -421,12 +421,12 @@
      ============================================================ */
   #sidebar{display:none;}
   @media (min-width:820px){
-    body.wide{display:flex;align-items:stretch;min-height:100dvh;}
-    body.wide #app{max-width:none;width:auto;margin:0;flex:1 1 auto;min-width:0;background:var(--bg);}
+    body.wide{display:block;min-height:100dvh;}
+    body.wide #app{margin-left:236px;max-width:none;width:auto;min-width:0;background:var(--bg);}
     body.wide .tabbar{display:none!important;}
 
-    /* ---------- Barra lateral ---------- */
-    body.wide #sidebar{display:flex;flex-direction:column;flex:0 0 236px;position:sticky;top:0;
+    /* ---------- Barra lateral (fixa — não rola com a página) ---------- */
+    body.wide #sidebar{display:flex;flex-direction:column;width:236px;position:fixed;left:0;top:0;
       height:100dvh;background:var(--surface);border-right:1px solid var(--line);z-index:46;
       padding:calc(var(--safe-top) + 20px) 14px calc(var(--safe-bot) + 16px);gap:3px;}
     .sb-brand{display:flex;align-items:center;gap:12px;padding:6px 10px 22px;}
