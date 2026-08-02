@@ -324,6 +324,9 @@
   #dayview{display:none;position:fixed;inset:0;z-index:50;background:var(--surface);overflow-y:auto;
     transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
   #dayview.show{transform:translateX(0);}
+  #movview{display:none;position:fixed;inset:0;z-index:52;background:var(--surface);overflow-y:auto;
+    transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
+  #movview.show{transform:translateX(0);}
   .day-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--surface);}
   .day-screen .topbar{border-bottom:1px solid var(--line);}
   .arrow.dv-plain{font-size:28px;color:var(--txt);width:34px;}
@@ -426,6 +429,7 @@
 <div id="ecoview"></div>
 <div id="custoview"></div>
 <div id="mediaview"></div>
+<div id="movview"></div>
 <div id="netbar"></div>
 <div id="cloudload"><div class="spinner"></div><div style="font-weight:700;color:var(--txt-2)">Sincronizando…</div></div>
 
@@ -789,17 +793,10 @@ function renderTotais(){
       ${movRow("economia",t.economia)}
       ${movRow("cartao",t.cartao)}
     </div>
-
-    <div class="section-title">previsão de diários do mês</div>
-    <div class="card">
-      <div class="rowitem"><span class="badge sm ring" style="width:28px;height:28px">D</span><span class="label">previsão de diário <span style="color:var(--txt-2)">×1</span></span><span class="value">${brl(fc)}</span></div>
-    </div>
     <div style="height:20px"></div>
   </div>`;
   c.innerHTML=html;
-  c.querySelectorAll("[data-mov]").forEach(el=>el.onclick=()=>{
-    view.filter=el.dataset.mov; switchTab("saldos");
-  });
+  c.querySelectorAll("[data-mov]").forEach(el=>el.onclick=()=>openMov(el.dataset.mov));
   const _pc=document.getElementById("perfCard"); if(_pc)_pc.onclick=openPerf;
   const _ec=document.getElementById("ecoCard"); if(_ec)_ec.onclick=openEco;
   const _cc=document.getElementById("custoCard"); if(_cc)_cc.onclick=openCusto;
@@ -1338,7 +1335,7 @@ function render(){
 
 /* =================== Página do dia =================== */
 const TYPE_WORD={entrada:"entrada",saida:"saída",diario:"diário",economia:"economia",cartao:"cartão"};
-function refresh(){ render(); if(dayOpen) renderDay(); }
+function refresh(){ render(); if(dayOpen) renderDay(); if(movOpen) renderMov(); }
 function openDay(dateStr){
   dayOpen=dateStr; view.dayFilter="todas"; renderDay();
   navPush(()=>{ dayOpen=null; const g=document.getElementById("dayview"); g.classList.remove("show");
@@ -1351,6 +1348,63 @@ function shiftDay(delta){
   view.y=d.getFullYear(); view.m=d.getMonth();
   render(); renderDay();
 }
+/* =================== Movimentações do mês (por tipo) =================== */
+let movOpen=false, movFilter="saidas";
+
+function openMov(filterKey){
+  movFilter=filterKey||"saidas";
+  view.filter=movFilter;              /* faz o botão + já vir com o tipo certo */
+  movOpen=true; renderMov();
+  navPush(()=>{ movOpen=false; const g=document.getElementById("movview");
+    g.classList.remove("show");
+    setTimeout(()=>{ if(!movOpen){ g.style.display="none"; g.innerHTML=""; } },460); });
+}
+function closeMov(){ if(movOpen) navBack(); }
+function movShift(delta){
+  if((view.m+=delta)<0){view.m=11;view.y--;} if(view.m>11){view.m=0;view.y++;}
+  render(); renderMov();
+}
+function renderMov(){
+  const g=document.getElementById("movview");
+  const _pm=g.querySelector(".scroll"); const _my=_pm?_pm.scrollTop:0;
+  g.style.display="block";
+  const label=`${MN[view.m]}/${String(view.y).slice(2)}`;
+  const f=movFilter;
+  const fType=({saidas:"saida",entradas:"entrada",diarios:"diario",economias:"economia",cartao:"cartao"})[f];
+  let list=monthTx(view.y,view.m);
+  if(f!=="todas") list=list.filter(t=>t.type===fType);
+  list.sort((a,b)=> b.date.localeCompare(a.date) || (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)));
+  const fLabel=f==="todas"?"todas":TYPES[fType].label;
+  const rows=list.length ? list.map(t=>`
+    <div class="txrow" data-tx="${t.id}">
+      ${badge(t.type)}
+      <div class="txinfo"><div class="txt">${(t.desc||TYPE_WORD[t.type]).replace(/</g,'&lt;')}</div><div class="txd">${t.date.slice(8,10)}/${t.date.slice(5,7)}</div></div>
+      <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${t.recur?'↺ ':''}${TYPE_WORD[t.type]}</div></div>
+    </div>`).join("")
+    : `<div class="empty">Nenhuma movimentação em <b>${fLabel}</b> neste mês.<br>Toque em + para adicionar.</div>`;
+  g.innerHTML=`<div class="day-screen">
+    <div class="topbar">
+      <button class="arrow dv-plain" id="mvBack">←</button>
+      <div class="month-nav">
+        <button class="arrow" id="mvPrev">‹</button>
+        <div class="month-label" style="font-size:26px;min-width:96px">${label}</div>
+        <button class="arrow" id="mvNext">›</button>
+      </div>
+      <button class="arrow dv-plain" id="mvAdd">+</button>
+    </div>
+    <div style="padding:14px 18px 6px"><button class="filter-pill" id="mvFilter" style="width:100%;justify-content:flex-start">${f==="todas"?'<span class="badge todas" style="background:var(--txt-2)">•••</span>':badge(fType)} ${fLabel}<span class="chev" style="margin-left:auto">▾</span></button></div>
+    <div class="scroll">${rows}</div>
+  </div>`;
+  document.getElementById("mvBack").onclick=closeMov;
+  document.getElementById("mvAdd").onclick=()=>openAddSheet(null,null);
+  document.getElementById("mvPrev").onclick=()=>movShift(-1);
+  document.getElementById("mvNext").onclick=()=>movShift(1);
+  document.getElementById("mvFilter").onclick=()=>openFilterSheet(movFilter,f2=>{ movFilter=f2; view.filter=f2; renderMov(); });
+  g.querySelectorAll("[data-tx]").forEach(el=>el.onclick=()=>openTxSheet(el.dataset.tx));
+  const _nm=g.querySelector(".scroll"); if(_nm) _nm.scrollTop=_my;
+  requestAnimationFrame(()=>g.classList.add("show"));
+}
+
 function renderDay(){
   if(!dayOpen)return;
   const g=document.getElementById("dayview"); 
