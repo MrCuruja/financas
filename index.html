@@ -96,6 +96,7 @@
     color:var(--txt-2);font-size:16px;}
   .filter-pill{display:inline-flex;align-items:center;gap:10px;padding:9px 16px;border:1px solid var(--line-strong);
     border-radius:30px;background:var(--surface);font-weight:800;color:var(--txt);font-size:17px;}
+  .subbar .filter-pill{width:210px;justify-content:center;}
   .filter-pill .chev{color:var(--txt-3);font-size:13px;}
   .badge{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
     color:#fff;font-weight:800;font-size:13px;flex:0 0 auto;}
@@ -110,12 +111,13 @@
   .scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;}
 
   /* saldos: barra fixa + só a lista rola + arrastar p/ trocar coluna */
+  body.saldos-active{height:100dvh;overflow:hidden;}
   body.saldos-active #app{height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
   body.saldos-active #header{flex:0 0 auto;}
   body.saldos-active #content{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding-bottom:0;}
   body.saldos-active #content>.subbar{flex:0 0 auto;background:var(--bg);}
   body.saldos-active #content>.saldos-scroll{flex:1 1 auto;min-height:0;}
-  .saldos-scroll{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;}
+  .saldos-scroll{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;}
   .saldos-track{padding-bottom:calc(var(--safe-bot) + 78px);}
 
   /* saldos rows */
@@ -505,6 +507,7 @@ const TYPES={
 };
 const TYPE_ORDER=["entrada","saida","diario","economia","cartao"];
 const SALDO_ORDER=["todas","entradas","saidas","diarios","economias","cartao"];
+const FILTER_LABEL={todas:"todas",entradas:"entradas",saidas:"saídas",diarios:"diários",economias:"economias",cartao:"cartão"};
 const SWIPE_ORDER=["todas","entradas","saidas","diarios","economias","cartao"];
 let saldosScrollY=0;
 const TAG_COLORS=["#e9df7f","#a9cce3","#c7b6e8","#d9d9d9","#a7e0a7","#7fd68a","#f5c396","#f2a7c0","#8fd0d6","#f7b7b7"];
@@ -640,7 +643,7 @@ function renderSaldos(){
   const today=new Date();
   const isToday=d=>today.getFullYear()===view.y&&today.getMonth()===view.m&&today.getDate()===d;
   const f=view.filter;
-  const fLabel=f==="todas"?"todas":TYPES[f==="saidas"?"saida":f==="entradas"?"entrada":f==="diarios"?"diario":f==="economias"?"economia":f==="cartao"?"cartao":"saida"].label;
+  const fLabel=FILTER_LABEL[f]||f;
   const fType=({saidas:"saida",entradas:"entrada",diarios:"diario",economias:"economia",cartao:"cartao"})[f];
 
   let sub=`<div class="subbar">
@@ -1264,21 +1267,16 @@ function renderMenu(){
         <div class="menu-row" id="mPush">${ic('<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 011 6.85"/><path d="M12 19v-8M9 14l3-3 3 3"/>')}Enviar este aparelho<span class="chev">›</span></div>
       </div>`
     : "";
-  c.innerHTML=`<div class="scroll">
+  c.innerHTML=`<div class="scroll" style="padding-top:var(--safe-top)">
     ${account}
     ${sync}
     <div class="section-title">gerenciar</div>
     <div class="card">
       <div class="menu-row" id="mCards">${ic('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>')}Cartões<span class="chev">›</span></div>
-      <div class="menu-row" id="mInit">${ic('<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>')}Saldo inicial<span class="value" style="margin-left:auto;font-weight:700;color:var(--txt-2)">${brl(state.settings.initial)}</span></div>
-      <div class="menu-row" id="mForecast">${ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}Previsão de diário<span class="value" style="margin-left:auto;font-weight:700;color:var(--txt-2)">${brl(state.settings.forecast)}</span></div>
     </div>
     <div class="section-title">app</div>
     <div class="card">
       <div class="menu-row" id="mFull">${ic('<path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3"/>')}Tela cheia<span class="chev">›</span></div>
-    </div>
-    <div class="section-title">aparência</div>
-    <div class="card">
       <div class="menu-row">${ic('<path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/>')}Modo escuro<span class="switch ${dark?'on':''}" id="mTheme"></span></div>
     </div>
     <div class="section-title">dados</div>
@@ -1296,8 +1294,6 @@ function renderMenu(){
   }
   document.getElementById("mFull").onclick=toggleFullscreen;
   document.getElementById("mCards").onclick=openCardsSheet;
-  document.getElementById("mInit").onclick=()=>promptValue("Saldo inicial","initial");
-  document.getElementById("mForecast").onclick=()=>promptValue("Previsão de diário","forecast");
   document.getElementById("mTheme").onclick=()=>{ state.settings.theme=dark?"light":"dark"; applyTheme(); persist(); render(); };
   document.getElementById("mExport").onclick=exportData;
   document.getElementById("mImport").onclick=importData;
@@ -1324,10 +1320,13 @@ function renderTabs(){
 /* =================== Render principal =================== */
 function render(){
   renderHeader(); renderTabs();
-  document.body.classList.toggle("saldos-active", view.tab==="saldos");
+  const _isSaldos = view.tab==="saldos";
+  document.body.classList.toggle("saldos-active", _isSaldos);
+  document.documentElement.style.overflow = _isSaldos ? "hidden" : "";
+  document.documentElement.style.height = _isSaldos ? "100dvh" : "";
   const c=document.getElementById("content");
-  const hideHeader=view.tab==="totais"||view.tab==="menu";
-  document.getElementById("header").style.display=hideHeader&&false?"none":"block";
+  const hideHeader=view.tab==="menu";
+  document.getElementById("header").style.display=hideHeader?"none":"block";
   if(view.tab==="saldos")renderSaldos();
   else if(view.tab==="totais")renderTotais();
   else if(view.tab==="tags")renderTags();
@@ -1375,7 +1374,7 @@ function renderMov(){
   let list=monthTx(view.y,view.m);
   if(f!=="todas") list=list.filter(t=>t.type===fType);
   list.sort((a,b)=> b.date.localeCompare(a.date) || (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)));
-  const fLabel=f==="todas"?"todas":TYPES[fType].label;
+  const fLabel=FILTER_LABEL[f]||f;
   const rows=list.length ? list.map(t=>`
     <div class="txrow" data-tx="${t.id}">
       ${badge(t.type)}
@@ -1418,7 +1417,7 @@ function renderDay(){
   let list=state.tx.filter(t=>t.date===dayOpen);
   if(f!=="todas") list=list.filter(t=>t.type===fType);
   list.sort((a,b)=>TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type));
-  const fLabel=f==="todas"?"todas":TYPES[fType].label;
+  const fLabel=FILTER_LABEL[f]||f;
   const rows=list.length ? list.map(t=>`
     <div class="txrow" data-tx="${t.id}">
       ${badge(t.type)}
