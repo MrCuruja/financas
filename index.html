@@ -485,15 +485,21 @@
       border-bottom:none;font-weight:800;height:50px;}
     .stable tfoot .tval{color:var(--txt);}
 
-    /* ---------- Saldos: barra superior com navegação de ANO ---------- */
+    /* ---------- Saldos: barra superior (ANO em cima, MÊS embaixo) ---------- */
     body.wide.saldos-active #content>.saldos-ctrl{flex:0 0 auto;}
-    .saldos-ctrl{display:flex;align-items:center;justify-content:center;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--line);}
-    .yearnav{display:flex;align-items:center;gap:18px;}
-    .yearnav .yr{font-size:22px;font-weight:800;letter-spacing:-.4px;min-width:88px;text-align:center;}
-    .yearnav .arrow{font-size:28px;color:var(--txt-3);width:40px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;
+    .saldos-ctrl{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 20px 13px;background:var(--surface);border-bottom:1px solid var(--line);}
+    .yearnav{display:flex;align-items:center;gap:16px;}
+    .yearnav .yr{font-size:23px;font-weight:800;letter-spacing:-.5px;min-width:92px;text-align:center;}
+    .yearnav .arrow{font-size:27px;color:var(--txt-2);width:40px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
     .yearnav .arrow:hover{background:var(--bg);color:var(--txt);}
+    .monthnav{display:flex;align-items:center;gap:12px;}
+    .monthnav .mo{font-size:16px;font-weight:700;color:var(--txt-2);min-width:118px;text-align:center;letter-spacing:-.2px;}
+    .monthnav .arrow{font-size:22px;color:var(--txt-3);width:32px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;
+      transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
+    .monthnav .arrow:hover{background:var(--bg);color:var(--txt);}
     body.wide .saldos-scroll{touch-action:pan-y;}
+    body.wide .saldos-scroll .stable{will-change:transform;}
 
     /* ---------- Totais: grade 2 colunas ---------- */
     body.wide[data-tab="totais"] #content>.scroll{max-width:920px;margin:0 auto;padding:26px 26px 60px;
@@ -2129,29 +2135,38 @@ function bindSaldosCells(c){
 }
 
 /* Troca o mês (usado pelo gesto de arrastar) */
+let saldosSlideDir=0;
 function saldosShiftMonth(delta){
+  saldosSlideDir = delta>0 ? 1 : -1;
   view.m+=delta;
   if(view.m<0){view.m=11;view.y--;}
   else if(view.m>11){view.m=0;view.y++;}
   render();
 }
 
-/* Barra superior: controle de setas do ANO (igual ao de mês do cabeçalho) */
+/* Barra superior: ANO em cima, MÊS embaixo (setas iguais às do cabeçalho) */
 function saldosCtrlHTML(){
+  const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
   return `<div class="saldos-ctrl">
     <div class="yearnav">
       <button class="arrow" data-yr="-1" aria-label="Ano anterior">‹</button>
       <span class="yr">${view.y}</span>
       <button class="arrow" data-yr="1" aria-label="Próximo ano">›</button>
     </div>
+    <div class="monthnav">
+      <button class="arrow" data-mo="-1" aria-label="Mês anterior">‹</button>
+      <span class="mo">${cap(MN_FULL[view.m])}</span>
+      <button class="arrow" data-mo="1" aria-label="Próximo mês">›</button>
+    </div>
   </div>`;
 }
 function bindSaldosCtrl(c){
   c.querySelectorAll("[data-yr]").forEach(el=>el.onclick=()=>{ view.y+=(+el.dataset.yr); render(); });
+  c.querySelectorAll("[data-mo]").forEach(el=>el.onclick=()=>saldosShiftMonth(+el.dataset.mo));
 }
 
 /* Gesto de arrastar para os lados: ← avança o mês, → volta o mês */
-function attachSaldosSwipe(el){
+function attachMonthSwipe(el){
   if(!el) return;
   let x0=0,y0=0,on=false,decided=false,horiz=false,swiped=false;
   const start=(x,y)=>{ x0=x;y0=y;on=true;decided=false;horiz=false;swiped=false; };
@@ -2169,17 +2184,26 @@ function attachSaldosSwipe(el){
   el.addEventListener("click",e=>{ if(swiped){ e.stopPropagation(); e.preventDefault(); swiped=false; } },true);
 }
 
-/* Saldos (desktop) — tabela única do mês, com arrastar para trocar de mês */
+/* Saldos (desktop) — tabela única do mês, com arrastar + animação de deslize */
 function renderSaldosMonth(){
   const c=document.getElementById("content");
   const prev=document.getElementById("saldosScroll"); if(prev) saldosScrollY=prev.scrollTop;
   c.innerHTML=saldosCtrlHTML()+`<div class="scroll saldos-scroll" id="saldosScroll">${buildMonthTable(view.y,view.m)}</div>`;
   const ns=document.getElementById("saldosScroll"); if(ns) ns.scrollTop=saldosScrollY;
-  bindSaldosCtrl(c); bindSaldosCells(c); attachSaldosSwipe(ns);
+  bindSaldosCtrl(c); bindSaldosCells(c); attachMonthSwipe(ns);
+  if(saldosSlideDir && ns){
+    const tbl=ns.querySelector(".stable");
+    if(tbl && tbl.animate){
+      const from = saldosSlideDir>0 ? "100%" : "-100%";
+      tbl.animate([{transform:`translateX(${from})`,opacity:.35},{transform:"translateX(0)",opacity:1}],
+        {duration:300,easing:"cubic-bezier(.22,.61,.36,1)"});
+    }
+  }
+  saldosSlideDir=0;
 }
 
 function renderSaldosDesktop(){
-  const hdr=document.getElementById("header"); if(hdr) hdr.style.display="block";
+  const hdr=document.getElementById("header"); if(hdr) hdr.style.display="none";
   renderSaldosMonth();
 }
 
