@@ -439,11 +439,11 @@
       color:var(--txt-2);font-size:16px;font-weight:700;text-align:left;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--press);}
     .sb-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
-    @media (hover:hover){ .sb-item:hover{background:var(--bg);color:var(--txt);} }
+    @media (hover:hover) and (pointer:fine){ .sb-item:hover{background:var(--bg);color:var(--txt);} }
     .sb-item:active{transform:scale(.97);}
     .sb-item.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);}
     .sb-item.add{background:var(--accent);color:#fff;margin-bottom:2px;}
-    @media (hover:hover){ .sb-item.add:hover{background:var(--accent);filter:brightness(1.06);color:#fff;} }
+    @media (hover:hover) and (pointer:fine){ .sb-item.add:hover{background:var(--accent);filter:brightness(1.06);color:#fff;} }
     .sb-sep{height:1px;background:var(--line);margin:12px 8px;}
     .sb-spacer{flex:1 1 auto;}
     .sb-foot{padding:10px 14px 2px;color:var(--txt-3);font-size:13px;font-weight:700;text-transform:capitalize;}
@@ -492,12 +492,12 @@
     .yearnav .yr{font-size:23px;font-weight:800;letter-spacing:-.5px;min-width:92px;text-align:center;}
     .yearnav .arrow{font-size:27px;color:var(--txt-2);width:40px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;touch-action:manipulation;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
-    @media (hover:hover){ .yearnav .arrow:hover{background:var(--bg);color:var(--txt);} }
+    @media (hover:hover) and (pointer:fine){ .yearnav .arrow:hover{background:var(--bg);color:var(--txt);} }
     .monthnav{display:flex;align-items:center;gap:12px;}
     .monthnav .mo{font-size:16px;font-weight:700;color:var(--txt-2);min-width:118px;text-align:center;letter-spacing:-.2px;}
     .monthnav .arrow{font-size:22px;color:var(--txt-3);width:32px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;touch-action:manipulation;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
-    @media (hover:hover){ .monthnav .arrow:hover{background:var(--bg);color:var(--txt);} }
+    @media (hover:hover) and (pointer:fine){ .monthnav .arrow:hover{background:var(--bg);color:var(--txt);} }
     body.wide .saldos-scroll{touch-action:pan-y;}
     body.wide .saldos-scroll .stable{will-change:transform;}
 
@@ -2040,6 +2040,23 @@ if(FB_ON){
 const MQ_WIDE = window.matchMedia("(min-width:820px)");
 function isWide(){ return MQ_WIDE.matches; }
 
+/* Dispara a ação já no primeiro toque (pointerup), evitando o atraso/engolimento
+   do clique sintético no iOS. Um guarda global ignora o "click" que vem logo após
+   um pointerup — mesmo que a ação recrie o botão (setas de mês). Toques distintos
+   continuam funcionando porque cada um gera seu próprio pointerup. */
+let _tapGuard=0;
+function onTap(el, fn){
+  el.addEventListener("pointerup", e=>{
+    if(e.button!=null && e.button>0) return;
+    _tapGuard=Date.now();
+    fn(e);
+  });
+  el.addEventListener("click", e=>{
+    if(Date.now()-_tapGuard < 700) return;   // clique sintético logo após o toque: ignora
+    fn(e);
+  });
+}
+
 function closeAllOverlays(){
   ["dayview","movview","perfview","ecoview","custoview","mediaview"].forEach(id=>{
     const g=document.getElementById(id);
@@ -2091,7 +2108,7 @@ function renderSidebar(){
     <div class="sb-foot"></div>`;
     sb.querySelectorAll("[data-sb]").forEach(el=>{
       const k=el.dataset.sb;
-      el.addEventListener("click",()=>sidebarAction(k));
+      onTap(el, ()=>sidebarAction(k));
     });
     sb.dataset.built="1";
   }
@@ -2181,8 +2198,8 @@ function saldosCtrlHTML(){
   </div>`;
 }
 function bindSaldosCtrl(c){
-  c.querySelectorAll("[data-yr]").forEach(el=>el.onclick=()=>{ view.y+=(+el.dataset.yr); render(); });
-  c.querySelectorAll("[data-mo]").forEach(el=>el.onclick=()=>saldosShiftMonth(+el.dataset.mo));
+  c.querySelectorAll("[data-yr]").forEach(el=>onTap(el, ()=>{ view.y+=(+el.dataset.yr); render(); }));
+  c.querySelectorAll("[data-mo]").forEach(el=>onTap(el, ()=>saldosShiftMonth(+el.dataset.mo)));
 }
 
 /* Gesto de arrastar para os lados: ← avança o mês, → volta o mês */
