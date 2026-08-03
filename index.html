@@ -435,15 +435,15 @@
     .sb-logo svg{width:22px;height:22px;}
     .sb-brand .nm{font-size:21px;font-weight:800;letter-spacing:-.5px;}
     .sb-nav{display:flex;flex-direction:column;gap:2px;}
-    .sb-item{display:flex;align-items:center;gap:13px;width:100%;padding:12px 14px;border-radius:13px;
+    .sb-item{display:flex;align-items:center;gap:13px;width:100%;padding:12px 14px;border-radius:13px;touch-action:manipulation;
       color:var(--txt-2);font-size:16px;font-weight:700;text-align:left;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--press);}
     .sb-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
-    .sb-item:hover{background:var(--bg);color:var(--txt);}
+    @media (hover:hover){ .sb-item:hover{background:var(--bg);color:var(--txt);} }
     .sb-item:active{transform:scale(.97);}
     .sb-item.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);}
     .sb-item.add{background:var(--accent);color:#fff;margin-bottom:2px;}
-    .sb-item.add:hover{background:var(--accent);filter:brightness(1.06);color:#fff;}
+    @media (hover:hover){ .sb-item.add:hover{background:var(--accent);filter:brightness(1.06);color:#fff;} }
     .sb-sep{height:1px;background:var(--line);margin:12px 8px;}
     .sb-spacer{flex:1 1 auto;}
     .sb-foot{padding:10px 14px 2px;color:var(--txt-3);font-size:13px;font-weight:700;text-transform:capitalize;}
@@ -490,14 +490,14 @@
     .saldos-ctrl{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 20px 13px;background:var(--surface);border-bottom:1px solid var(--line);}
     .yearnav{display:flex;align-items:center;gap:16px;}
     .yearnav .yr{font-size:23px;font-weight:800;letter-spacing:-.5px;min-width:92px;text-align:center;}
-    .yearnav .arrow{font-size:27px;color:var(--txt-2);width:40px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;
+    .yearnav .arrow{font-size:27px;color:var(--txt-2);width:40px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;touch-action:manipulation;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
-    .yearnav .arrow:hover{background:var(--bg);color:var(--txt);}
+    @media (hover:hover){ .yearnav .arrow:hover{background:var(--bg);color:var(--txt);} }
     .monthnav{display:flex;align-items:center;gap:12px;}
     .monthnav .mo{font-size:16px;font-weight:700;color:var(--txt-2);min-width:118px;text-align:center;letter-spacing:-.2px;}
-    .monthnav .arrow{font-size:22px;color:var(--txt-3);width:32px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;
+    .monthnav .arrow{font-size:22px;color:var(--txt-3);width:32px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;touch-action:manipulation;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
-    .monthnav .arrow:hover{background:var(--bg);color:var(--txt);}
+    @media (hover:hover){ .monthnav .arrow:hover{background:var(--bg);color:var(--txt);} }
     body.wide .saldos-scroll{touch-action:pan-y;}
     body.wide .saldos-scroll .stable{will-change:transform;}
 
@@ -2040,20 +2040,40 @@ if(FB_ON){
 const MQ_WIDE = window.matchMedia("(min-width:820px)");
 function isWide(){ return MQ_WIDE.matches; }
 
+function closeAllOverlays(){
+  ["dayview","movview","perfview","ecoview","custoview","mediaview"].forEach(id=>{
+    const g=document.getElementById(id);
+    if(g){ g.classList.remove("show"); g.style.display=""; g.innerHTML=""; }
+  });
+  const bd=document.getElementById("backdrop"); if(bd) bd.classList.remove("open");
+  dayOpen=null; perfOpen=ecoOpen=custoOpen=mediaOpen=movOpen=false; sheetOpen=false;
+  navStack=[];
+}
+
+const SB_ICON={
+  saldos:'<path d="M3 6h4M3 12h4M3 18h4M10 6h11M10 12h11M10 18h11"/>',
+  totais:'<path d="M4 20h16M8 20v-5M12 20v-10M16 20v-7"/>',
+  tags:'<path d="M20.6 12.6l-8 8a2 2 0 01-2.8 0L3 14V4h10l7.6 7.6a2 2 0 010 1z"/><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/>',
+  menu:'<path d="M3 6h18M3 12h18M3 18h18"/>',
+  add:'<path d="M12 5v14M5 12h14"/>',
+  today:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 3v3M16 3v3"/>'
+};
+/* A barra lateral é navegação-raiz: fecha qualquer tela sobreposta e vai direto ao destino */
+function sidebarAction(k){
+  closeAllOverlays();
+  if(k==="add"){ openAddSheet(null); return; }
+  if(k==="today"){ const t=new Date(); view.y=t.getFullYear(); view.m=t.getMonth(); view.tab="saldos"; render(); setTimeout(scrollSaldosToToday,90); return; }
+  if(view.tab!==k){ view.tab=k; render(); tabTransition(); }
+  else render();
+}
+/* Construída uma única vez; depois só atualiza o estado (mais leve e responsivo) */
 function renderSidebar(){
   const sb=document.getElementById("sidebar");
   if(!sb) return;
-  if(!isWide()){ sb.innerHTML=""; return; }
-  const ICON={
-    saldos:'<path d="M3 6h4M3 12h4M3 18h4M10 6h11M10 12h11M10 18h11"/>',
-    totais:'<path d="M4 20h16M8 20v-5M12 20v-10M16 20v-7"/>',
-    tags:'<path d="M20.6 12.6l-8 8a2 2 0 01-2.8 0L3 14V4h10l7.6 7.6a2 2 0 010 1z"/><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/>',
-    menu:'<path d="M3 6h18M3 12h18M3 18h18"/>',
-    add:'<path d="M12 5v14M5 12h14"/>',
-    today:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 3v3M16 3v3"/>'
-  };
-  const item=(id,lbl)=>`<button class="sb-item ${view.tab===id?'active':''}" data-sb="${id}"><svg viewBox="0 0 24 24">${ICON[id]}</svg><span>${lbl}</span></button>`;
-  sb.innerHTML=`
+  if(!isWide()){ if(sb.dataset.built){ sb.innerHTML=""; delete sb.dataset.built; } return; }
+  if(!sb.dataset.built){
+    const item=(id,lbl)=>`<button class="sb-item" data-sb="${id}"><svg viewBox="0 0 24 24">${SB_ICON[id]}</svg><span>${lbl}</span></button>`;
+    sb.innerHTML=`
     <div class="sb-brand">
       <span class="sb-logo"><img src="${window.APP_ICON}" alt="" draggable="false"></span>
       <span class="nm">Finanças</span>
@@ -2065,18 +2085,18 @@ function renderSidebar(){
       ${item("menu","Menu")}
     </nav>
     <div class="sb-sep"></div>
-    <button class="sb-item add" data-sb="add"><svg viewBox="0 0 24 24">${ICON.add}</svg><span>Adicionar</span></button>
-    <button class="sb-item" data-sb="today"><svg viewBox="0 0 24 24">${ICON.today}</svg><span>Ir pra hoje</span></button>
+    <button class="sb-item add" data-sb="add"><svg viewBox="0 0 24 24">${SB_ICON.add}</svg><span>Adicionar</span></button>
+    <button class="sb-item" data-sb="today"><svg viewBox="0 0 24 24">${SB_ICON.today}</svg><span>Ir pra hoje</span></button>
     <div class="sb-spacer"></div>
-    <div class="sb-foot">${MN_FULL[view.m]} de ${view.y}</div>`;
-  sb.querySelectorAll("[data-sb]").forEach(el=>{
-    const k=el.dataset.sb;
-    el.onclick=()=>{
-      if(k==="add") openAddSheet(null);
-      else if(k==="today"){ const t=new Date(); view.y=t.getFullYear(); view.m=t.getMonth(); render(); setTimeout(scrollSaldosToToday,80); }
-      else switchTab(k);
-    };
-  });
+    <div class="sb-foot"></div>`;
+    sb.querySelectorAll("[data-sb]").forEach(el=>{
+      const k=el.dataset.sb;
+      el.addEventListener("click",()=>sidebarAction(k));
+    });
+    sb.dataset.built="1";
+  }
+  sb.querySelectorAll(".sb-nav [data-sb]").forEach(el=>el.classList.toggle("active", el.dataset.sb===view.tab));
+  const foot=sb.querySelector(".sb-foot"); if(foot) foot.textContent=`${MN_FULL[view.m]} de ${view.y}`;
 }
 
 function scrollSaldosToToday(){
