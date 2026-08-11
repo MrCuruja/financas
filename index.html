@@ -341,9 +341,10 @@
   .txrow .txlbl{font-size:16px;color:var(--txt-2);font-weight:600;margin-top:3px;}
 
   /* ---------- Performance (ano) ---------- */
-  #perfview{display:none;position:fixed;inset:0;z-index:55;background:var(--surface);overflow-y:auto;
+  #perfview,#cardview{display:none;position:fixed;inset:0;z-index:55;background:var(--surface);overflow-y:auto;
     transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
-  #perfview.show{transform:translateX(0);}
+  #perfview.show,#cardview.show{transform:translateX(0);}
+  #cardview{display:none;}
   .perf-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--bg);}
   .perf-screen .topbar{background:var(--surface);border-bottom:1px solid var(--line);}
   .perf-year{display:flex;align-items:center;justify-content:center;gap:6px;margin:16px 18px 2px;
@@ -366,6 +367,23 @@
   .perf-row.now .pm::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
     background:var(--accent);margin-left:8px;vertical-align:middle;}
   .perf-row .pv{font-size:21px;font-weight:800;white-space:nowrap;}
+
+  /* ---------- Cartões (ano) ---------- */
+  .cardchips{display:flex;gap:8px;overflow-x:auto;padding:14px 16px;background:var(--surface);
+    border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .cardchips::-webkit-scrollbar{display:none;}
+  .cardchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:22px;
+    border:1px solid var(--line-strong);background:var(--bg);color:var(--txt-2);font-size:15px;font-weight:700;
+    letter-spacing:-.2px;transition:background var(--dur) var(--ease-out),color var(--dur) var(--ease-out),border-color var(--dur) var(--ease-out);}
+  .cardchip .dot{width:11px;height:11px;border-radius:3px;}
+  .cardchip.on{background:var(--txt);color:var(--surface);border-color:var(--txt);}
+  .cardblock-head{display:flex;align-items:center;gap:10px;padding:22px 20px 4px;background:var(--surface);}
+  .cardblock-head .dot{width:14px;height:14px;border-radius:4px;flex:0 0 auto;}
+  .cardblock-head .nm{font-size:21px;font-weight:800;letter-spacing:-.3px;flex:1 1 auto;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cardblock-head .tot{font-size:20px;font-weight:800;color:var(--cartao);white-space:nowrap;}
+  .cardblock-sub{padding:0 20px 14px;background:var(--surface);color:var(--txt-3);font-size:13px;font-weight:700;
+    border-bottom:1px solid var(--line);}
 
   /* ---------- Economizado (ano) ---------- */
   #ecoview{display:none;position:fixed;inset:0;z-index:55;background:var(--surface);overflow-y:auto;
@@ -516,11 +534,11 @@
 
     /* ---------- Detalhes no modo horizontal (dia, movimentações e cards do Totais) ---------- */
     body.wide #dayview,body.wide #movview,body.wide #perfview,
-    body.wide #ecoview,body.wide #custoview,body.wide #mediaview{left:236px;background:var(--bg);}
-    body.wide .day-screen,body.wide .perf-screen,body.wide .eco-screen{
+    body.wide #ecoview,body.wide #custoview,body.wide #mediaview,body.wide #cardview{left:236px;background:var(--bg);}
+    body.wide .day-screen,body.wide .perf-screen,body.wide .eco-screen,body.wide .card-screen{
       max-width:820px;margin:24px auto 48px;min-height:0;background:var(--surface);
       border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow);}
-    body.wide .day-screen .topbar,body.wide .perf-screen .topbar,body.wide .eco-screen .topbar{
+    body.wide .day-screen .topbar,body.wide .perf-screen .topbar,body.wide .eco-screen .topbar,body.wide .card-screen .topbar{
       border-bottom:1px solid var(--line);}
   }
 </style>
@@ -541,6 +559,7 @@
 <div id="ecoview"></div>
 <div id="custoview"></div>
 <div id="mediaview"></div>
+<div id="cardview"></div>
 <div id="movview"></div>
 <div id="netbar"></div>
 <div id="cloudload"><div class="spinner"></div><div style="font-weight:700;color:var(--txt-2)">Sincronizando…</div></div>
@@ -687,16 +706,47 @@ let dayOpen=null;
 /* =================== Cálculos =================== */
 const delta=t=>t.type==="entrada"?t.amount:-t.amount;
 function sortedTx(){ return [...state.tx].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0); }
-function monthTx(y,m){ const k=`${y}-${pad(m+1)}`; return state.tx.filter(t=>t.date.startsWith(k)); }
+
+/* ---- Cartões: fatura & impacto no saldo ----
+   Um gasto de cartão pesa no saldo no MÊS DA FATURA (não na data da compra),
+   caindo no dia do vencimento do cartão. Lançamentos antigos sem "fatura"
+   continuam contando pela própria data. */
+const CARD_COLORS=["#7a2fe0","#0aa5c9","#e0762f","#2aa858","#d33d8a","#3a6df0","#c9a90a","#8a5a3a","#5a5f6b","#c94b4b"];
+function cardBy(name){ return state.cards.find(c=>c.name===name)||null; }
+function cardColor(card){
+  if(card&&card.color) return card.color;
+  const i=state.cards.findIndex(c=>c.id===(card&&card.id));
+  return CARD_COLORS[(i>=0?i:0)%CARD_COLORS.length];
+}
+function clampDay(n){ n=parseInt(n,10); return (n>=1&&n<=31)?n:0; }
+function txMonthKey(t){ return (t.type==="cartao"&&t.fatura)?t.fatura:t.date.slice(0,7); }
+function txDay(t){
+  if(t.type==="cartao"&&t.fatura){
+    const y=+t.fatura.slice(0,4), m=+t.fatura.slice(5,7)-1, dim=daysInMonth(y,m);
+    const c=cardBy(t.card), due=c?clampDay(c.due):0;
+    return Math.min(due||dim,dim);
+  }
+  return +t.date.slice(8,10);
+}
+function faturaKey(y,m){ return `${y}-${pad(m+1)}`; }
+function faturaLabel(key){ const y=+key.slice(0,4), m=+key.slice(5,7)-1; return `${MN[m]}/${String(y).slice(2)}`; }
+/* fatura padrão de uma compra: se comprou depois do fechamento, cai na próxima */
+function defaultFatura(dateStr,cardName){
+  let y=+dateStr.slice(0,4), m=+dateStr.slice(5,7)-1, d=+dateStr.slice(8,10);
+  const c=cardBy(cardName), close=c?clampDay(c.close):0;
+  if(close&&d>close){ m++; if(m>11){m=0;y++;} }
+  return faturaKey(y,m);
+}
+function monthTx(y,m){ const k=faturaKey(y,m); return state.tx.filter(t=>txMonthKey(t)===k); }
 function monthTotals(y,m){
   const o={entrada:0,saida:0,diario:0,economia:0,cartao:0};
   monthTx(y,m).forEach(t=>o[t.type]+=t.amount);
   return o;
 }
 function openingBalance(y,m){
-  const first=dstr(y,m,1);
+  const k=faturaKey(y,m);
   let b=state.settings.initial||0;
-  sortedTx().forEach(t=>{ if(t.date<first) b+=delta(t); });
+  state.tx.forEach(t=>{ if(txMonthKey(t)<k) b+=delta(t); });
   return b;
 }
 // saldo ao final de cada dia do mês
@@ -705,7 +755,7 @@ function dailyBalances(y,m){
   const arr=new Array(dim+1).fill(0);
   let b=openingBalance(y,m);
   const byDay={};
-  monthTx(y,m).forEach(t=>{ const d=+t.date.slice(8,10); (byDay[d]=byDay[d]||[]).push(t); });
+  monthTx(y,m).forEach(t=>{ const d=txDay(t); (byDay[d]=byDay[d]||[]).push(t); });
   for(let d=1;d<=dim;d++){
     (byDay[d]||[]).forEach(t=>b+=delta(t));
     arr[d]=b;
@@ -764,7 +814,7 @@ function renderSaldos(){
 
   // agrupa transações por dia
   const byDay={};
-  monthTx(view.y,view.m).forEach(t=>{ const d=+t.date.slice(8,10); (byDay[d]=byDay[d]||[]).push(t); });
+  monthTx(view.y,view.m).forEach(t=>{ const d=txDay(t); (byDay[d]=byDay[d]||[]).push(t); });
 
   let rows="";
   if(f==="todas"){
@@ -896,6 +946,10 @@ function renderTotais(){
       <div class="top"><div class="name">diário médio <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(medio)}</div><div class="cap">por dia</div></div></div>
       <div class="chips"><span class="badge sm diario">D</span><span style="color:var(--txt-2);font-weight:700">/ ${divDays} dias</span></div>
     </div>
+    <div class="calc" id="cardsCard" style="cursor:pointer">
+      <div class="top"><div class="name">cartões <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:var(--cartao)">${brl(t.cartao)}</div><div class="cap">${state.cards.length?"nas faturas do mês":"nenhum cartão"}</div></div></div>
+      <div class="chips">${cardsChips()}</div>
+    </div>
 
     <div class="section-title">movimentações do mês</div>
     <div class="card">
@@ -914,6 +968,12 @@ function renderTotais(){
   const _ec=document.getElementById("ecoCard"); if(_ec)_ec.onclick=openEco;
   const _cc=document.getElementById("custoCard"); if(_cc)_cc.onclick=openCusto;
   const _mc=document.getElementById("mediaCard"); if(_mc)_mc.onclick=openMedia;
+  const _cd=document.getElementById("cardsCard"); if(_cd)_cd.onclick=openCardsView;
+}
+function cardsChips(){
+  if(!state.cards.length) return `<span style="color:var(--txt-3);font-weight:700">cadastre no menu ›</span>`;
+  return state.cards.slice(0,6).map(c=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;font-weight:700;color:var(--txt-2);font-size:13px"><span style="width:11px;height:11px;border-radius:3px;background:${cardColor(c)}"></span>${c.name}</span>`).join("")
+    + (state.cards.length>6?`<span style="color:var(--txt-3);font-weight:700">+${state.cards.length-6}</span>`:"");
 }
 function movRow(type,val){
   const f=({entrada:"entradas",saida:"saidas",diario:"diarios",economia:"economias",cartao:"cartao"})[type];
@@ -1309,6 +1369,102 @@ function renderMedia(){
   requestAnimationFrame(()=>g.classList.add("show"));
 }
 
+/* =================== Cartões (histórico + gráficos por cartão) =================== */
+let cardviewOpen=false, cardYear=new Date().getFullYear(), cardHelp=false, cardSel="__all__";
+
+function cardMonthTotal(name,y,m){
+  const k=faturaKey(y,m); let s=0;
+  state.tx.forEach(t=>{ if(t.type==="cartao"&&t.card===name&&txMonthKey(t)===k) s+=t.amount; });
+  return s;
+}
+function cardYearVals(name,y){ const v=[]; for(let m=0;m<12;m++)v.push(cardMonthTotal(name,y,m)); return v; }
+
+function openCardsView(){
+  cardviewOpen=true; cardYear=view.y; cardSel="__all__"; renderCardsView();
+  navPush(()=>{ cardviewOpen=false; const g=document.getElementById("cardview");
+    g.classList.remove("show");
+    setTimeout(()=>{ if(!cardviewOpen){ g.style.display="none"; g.innerHTML=""; } },460); });
+}
+function closeCardsView(){ if(cardviewOpen) navBack(); }
+
+function renderCardsView(){
+  const g=document.getElementById("cardview");
+  const _pp=g.querySelector(".scroll"); const _py=_pp?_pp.scrollTop:0;
+  g.style.display="block";
+  const now=new Date();
+  const curM=(cardYear===now.getFullYear())?now.getMonth():-1;
+  const cards=state.cards;
+  if(cardSel!=="__all__"&&!cards.some(c=>c.id===cardSel)) cardSel="__all__";
+
+  let chips="";
+  if(cards.length>1){
+    const mk=(id,label,color,active)=>`<button class="cardchip${active?' on':''}" data-cid="${id}">${color?`<span class="dot" style="background:${color}"></span>`:''}${label}</button>`;
+    chips=`<div class="cardchips">`+mk("__all__","todos","",cardSel==="__all__")
+        +cards.map(c=>mk(c.id,c.name,cardColor(c),cardSel===c.id)).join("")+`</div>`;
+  }
+  const shown=cardSel==="__all__"?cards:cards.filter(c=>c.id===cardSel);
+
+  const allVals=[]; for(let m=0;m<12;m++){ let s=0; cards.forEach(c=>s+=cardMonthTotal(c.name,cardYear,m)); allVals.push(s); }
+  const allYear=allVals.reduce((a,b)=>a+b,0);
+
+  let body="";
+  if(!cards.length){
+    body=`<div class="empty" style="padding:40px 26px;line-height:1.6">Nenhum cartão cadastrado.<br><br>Cadastre seus cartões em <b>Menu › Cartões</b> para acompanhar aqui o histórico e os gráficos de cada um.</div>`;
+  } else {
+    if(cardSel==="__all__"){
+      body+=`<div class="section-title">todos os cartões</div>
+      <div class="perf-chart">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 12px">
+          <span style="font-size:14px;font-weight:700;color:var(--txt-2)">gasto no ano</span>
+          <span style="font-size:19px;font-weight:800;color:var(--cartao)">${brl(allYear)}</span>
+        </div>
+        ${allYear>0?posBarChartSVG(allVals,"var(--cartao)",curM):'<div class="empty" style="padding:22px 6px">Sem gastos de cartão em '+cardYear+'.</div>'}
+      </div>`;
+    }
+    shown.forEach(c=>{
+      const vals=cardYearVals(c.name,cardYear), yTot=vals.reduce((a,b)=>a+b,0), col=cardColor(c);
+      const list=vals.map((v,i)=>({v,i})).filter(x=>x.v>0)
+        .map(x=>`<div class="perf-row"><span class="pm" style="font-size:18px">${MN_FULL[x.i]}</span><span class="pv" style="color:var(--txt)">${brl(x.v)}</span></div>`).join("");
+      body+=`<div class="cardblock-head"><span class="dot" style="background:${col}"></span><span class="nm">${c.name}</span><span class="tot">${brl(yTot)}</span></div>
+        <div class="cardblock-sub">fecha dia ${c.close} · vence dia ${c.due}</div>
+        <div class="perf-chart">${yTot>0?posBarChartSVG(vals,col,curM):'<div class="empty" style="padding:18px 6px">Sem gastos em '+cardYear+'.</div>'}</div>
+        ${list||`<div class="empty" style="padding:12px 6px 22px">—</div>`}`;
+    });
+  }
+
+  g.innerHTML=`<div class="card-screen perf-screen">
+    <div class="topbar">
+      <button class="arrow dv-plain" id="cvwBack">←</button>
+      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">cartões</div>
+      <div style="width:34px"></div>
+    </div>
+    <div class="perf-year">
+      <button class="arrow" id="cvwPrev">‹</button>
+      <div class="yr">${cardYear}</div>
+      <button class="arrow" id="cvwNext">›</button>
+    </div>
+    <div class="perf-help${cardHelp?' open':''}" id="cvwHelp">
+      <div class="hd" id="cvwHelpHd">como funcionam os cartões?<span class="cx">▾</span></div>
+      <div class="bd"><div class="inner">
+        Cada gasto pesa no saldo no <b>mês da fatura</b> em que foi lançado, no dia do
+        <b>vencimento</b> do cartão — e não na data da compra.<br><br>
+        Compras <b>parceladas</b> distribuem uma parcela por fatura, mês a mês.
+        Cadastre e edite seus cartões em <b>Menu › Cartões</b>.
+      </div></div>
+    </div>
+    ${chips}
+    <div class="scroll">${body}<div style="height:20px"></div></div>
+  </div>`;
+
+  document.getElementById("cvwBack").onclick=closeCardsView;
+  document.getElementById("cvwPrev").onclick=()=>{ cardYear--; renderCardsView(); };
+  document.getElementById("cvwNext").onclick=()=>{ cardYear++; renderCardsView(); };
+  document.getElementById("cvwHelpHd").onclick=()=>{ cardHelp=!cardHelp; document.getElementById("cvwHelp").classList.toggle("open",cardHelp); };
+  g.querySelectorAll("[data-cid]").forEach(el=>el.onclick=()=>{ cardSel=el.dataset.cid; renderCardsView(); });
+  const _np=g.querySelector(".scroll"); if(_np)_np.scrollTop=_py;
+  requestAnimationFrame(()=>g.classList.add("show"));
+}
+
 /* =================== Render: Tags =================== */
 function renderTags(){
   const c=document.getElementById("content");
@@ -1653,22 +1809,69 @@ function openAddSheet(txId,presetDate){
       <div class="amount-box"><span class="cur">R$</span> <input id="fAmount" inputmode="numeric" maxlength="16" placeholder="0,00" value="${editing?amountMask(editing.amount):''}"></div>
       <div class="field"><label>descrição</label><input type="text" id="fDesc" placeholder="ex: mercado, salário..." value="${editing?editing.desc.replace(/"/g,'&quot;'):''}"></div>
       <div class="field"><label>data</label><input type="date" id="fDate" value="${defDate}"></div>
-      ${editing?"":`<div id="repeatWrap"></div>`}
+      ${editing?"":`<div id="repeatWrap" class="${sel==='cartao'?'hidden':''}"></div>`}
       <div class="field"><label>tag</label><select id="fTag">${tagOpts}</select></div>
       <div class="field ${sel==='cartao'?'':'hidden'}" id="cardField"><label>cartão</label><select id="fCard">${cardOpts}</select></div>
+      <div class="field ${sel==='cartao'?'':'hidden'}" id="faturaField"><label>fatura inicial</label><select id="fFatura"></select></div>
+      ${editing?"":`<div id="parcWrap" class="${sel==='cartao'?'':'hidden'}"></div>`}
       <button class="save-btn" id="saveTx">${editing?"salvar alterações":"adicionar"}</button>
       ${editing?`<button class="del-btn" id="delTx">excluir lançamento</button>`:""}
     </div>`);
 
   let cur=sel;
+
+  // ---- cartão: fatura inicial + parcelas ----
+  let parc=1;
+  let faturaAuto=!(editing&&editing.type==="cartao"&&editing.fatura);
+  let faturaChoice=(editing&&editing.type==="cartao"&&editing.fatura)
+      ? editing.fatura
+      : defaultFatura(defDate,(editing&&editing.card)||(state.cards[0]?state.cards[0].name:""));
+  const purchaseDate=()=>document.getElementById("fDate").value||defDate;
+  function rebuildFatura(){
+    const s=document.getElementById("fFatura"); if(!s) return;
+    const idxOf=k=>{ const y=+k.slice(0,4),m=+k.slice(5,7)-1; return y*12+m; };
+    const keyOf=i=>faturaKey(Math.floor(i/12),((i%12)+12)%12);
+    let lo=idxOf(purchaseDate().slice(0,7))-3, hi=lo+3+21;
+    const ci=idxOf(faturaChoice); if(ci<lo)lo=ci; if(ci>hi)hi=ci;
+    let opts="";
+    for(let i=lo;i<=hi;i++){ const k=keyOf(i); opts+=`<option value="${k}" ${k===faturaChoice?'selected':''}>${faturaLabel(k)}</option>`; }
+    s.innerHTML=opts;
+  }
+  function renderParc(){
+    const w=document.getElementById("parcWrap"); if(!w) return;
+    const amt=parseAmount(amtEl.value), per=parc>0?amt/parc:amt;
+    const ay=+faturaChoice.slice(0,4), am=+faturaChoice.slice(5,7);
+    const endTot=(am-1)+(parc-1), ey=ay+Math.floor(endTot/12), emm=((endTot%12)+12)%12;
+    const span=parc>1?`${faturaLabel(faturaChoice)} → ${MN[emm]}/${String(ey).slice(2)}`:`fatura ${faturaLabel(faturaChoice)}`;
+    w.innerHTML=`<div class="rep-cwrap"><div class="rl">parcelas</div>
+      <div class="rep-crow"><span class="rep-prev">${parc>1?`# <b>${parc}×</b> de ${brl(per)}`:'<b>à vista</b>'} <span style="color:var(--txt-3)">· ${span}</span></span>
+      <button type="button" class="step-btn" id="parcMinus" ${parc<=1?"disabled":""}>−</button>
+      <button type="button" class="step-btn" id="parcPlus">+</button></div></div>`;
+    const mn=document.getElementById("parcMinus"); if(mn)mn.onclick=()=>{ parc=Math.max(1,parc-1); renderParc(); };
+    const pl=document.getElementById("parcPlus"); if(pl)pl.onclick=()=>{ parc=Math.min(360,parc+1); renderParc(); };
+  }
+  function refreshFaturaDefault(){ if(faturaAuto) faturaChoice=defaultFatura(purchaseDate(),document.getElementById("fCard").value); }
+  function syncCartao(){
+    const on=cur==="cartao";
+    ["cardField","faturaField","parcWrap"].forEach(id=>{ const e=document.getElementById(id); if(e)e.classList.toggle("hidden",!on); });
+    const rw=document.getElementById("repeatWrap"); if(rw)rw.classList.toggle("hidden",on);
+    if(on){ refreshFaturaDefault(); rebuildFatura(); renderParc(); }
+  }
+
   sheetEl.querySelectorAll("[data-tp]").forEach(el=>el.onclick=()=>{
     cur=el.dataset.tp; sheetEl.querySelectorAll(".type-tab").forEach(x=>x.classList.remove("sel")); el.classList.add("sel");
-    document.getElementById("cardField").classList.toggle("hidden",cur!=="cartao");
+    syncCartao();
   });
+  const fCardEl=document.getElementById("fCard");
+  if(fCardEl)fCardEl.onchange=()=>{ refreshFaturaDefault(); rebuildFatura(); renderParc(); };
+  const fDateEl=document.getElementById("fDate");
+  if(fDateEl)fDateEl.addEventListener("change",()=>{ if(cur==="cartao"){ refreshFaturaDefault(); rebuildFatura(); renderParc(); } });
+  const fFaturaEl=document.getElementById("fFatura");
+  if(fFaturaEl)fFaturaEl.onchange=()=>{ faturaChoice=fFaturaEl.value; faturaAuto=false; renderParc(); };
 
   // valor: vírgula automática (conta os dígitos como centavos)
   const amtEl=document.getElementById("fAmount");
-  amtEl.addEventListener("input",()=>{ amtEl.value=centsMask(amtEl.value); updateRepPreview(); });
+  amtEl.addEventListener("input",()=>{ amtEl.value=centsMask(amtEl.value); updateRepPreview(); if(cur==="cartao")renderParc(); });
 
   // repetir valor (apenas em novos lançamentos)
   let repMode="none", repCount=12, repOpen=false;
@@ -1703,6 +1906,7 @@ function openAddSheet(txId,presetDate){
     const pl=document.getElementById("repPlus"); if(pl)pl.onclick=()=>{ repCount=Math.min(360,repCount+1); renderRepeat(); };
   }
   if(!editing) renderRepeat();
+  syncCartao();
 
   document.getElementById("saveTx").onclick=async()=>{
     const amt=parseAmount(document.getElementById("fAmount").value);
@@ -1714,6 +1918,7 @@ function openAddSheet(txId,presetDate){
       tag:document.getElementById("fTag").value,
       card:cur==="cartao"?document.getElementById("fCard").value:""
     };
+    if(cur==="cartao") obj.fatura=faturaChoice;
     if(editing){
       const sibs=editing.series?state.tx.filter(t=>t.series===editing.series):[];
       if(sibs.length>1){
@@ -1730,6 +1935,21 @@ function openAddSheet(txId,presetDate){
         Object.assign(editing,obj);
         toast(scope==="one"?"Lançamento atualizado":"Repetições atualizadas");
       } else { Object.assign(editing,obj); toast("Lançamento atualizado"); }
+    }
+    else if(cur==="cartao"){
+      const n=Math.max(1,parc|0);
+      const cents=Math.round(amt*100), q=Math.floor(cents/n), r=cents-q*n;
+      const ay=+faturaChoice.slice(0,4), am=+faturaChoice.slice(5,7)-1;
+      const series=n>1?uid():null;
+      for(let k=0;k<n;k++){
+        const tot=am+k, ny=ay+Math.floor(tot/12), nm=((tot%12)+12)%12;
+        const rec={id:uid(),...obj,amount:(q+(k<r?1:0))/100,
+          desc:n>1?((obj.desc||TYPE_WORD.cartao)+` (${k+1}/${n})`):obj.desc,
+          fatura:faturaKey(ny,nm)};
+        if(n>1){ rec.series=series; rec.recur=true; }
+        state.tx.push(rec);
+      }
+      toast(n>1?`${n} parcelas adicionadas`:"Lançamento adicionado");
     }
     else if(repMode!=="none"){
       const n=Math.max(2,repCount|0);
@@ -1757,8 +1977,8 @@ function openAddSheet(txId,presetDate){
     }
     else { state.tx.push({id:uid(),...obj}); toast("Lançamento adicionado"); }
     persist(); closeSheet();
-    const mo=+obj.date.slice(5,7)-1, yr=+obj.date.slice(0,4);
-    view.y=yr; view.m=mo; refresh();
+    const jump=(cur==="cartao"&&obj.fatura)?obj.fatura:obj.date.slice(0,7);
+    view.y=+jump.slice(0,4); view.m=+jump.slice(5,7)-1; refresh();
   };
   if(editing) document.getElementById("delTx").onclick=async()=>{
     if(await deleteTx(editing.id)){ closeSheet(); refresh(); toast("Excluído"); }
@@ -1775,6 +1995,7 @@ function openTxSheet(txId){
       <div style="text-align:center;margin:-6px 0 16px">${badge(t.type,"sm")} <span style="font-weight:700;color:var(--txt-2)">${TYPES[t.type].label}${t.card?' · '+t.card:''}${t.tag?' · '+t.tag:''}</span></div>
       <div style="text-align:center;font-size:18px;font-weight:600;margin-bottom:4px">${t.desc||"(sem descrição)"}</div>
       <div style="text-align:center;color:var(--txt-2);font-weight:600">${t.date.split('-').reverse().join('/')}</div>
+      ${t.type==="cartao"&&t.fatura?`<div style="text-align:center;color:var(--cartao);font-weight:800;margin-top:6px">fatura de ${faturaLabel(t.fatura)}</div>`:""}
       ${t.series&&state.tx.some(x=>x.series===t.series&&x.id!==t.id)?`<div style="text-align:center;color:var(--txt-2);font-weight:700;margin-top:8px">↺ lançamento repetido</div>`:""}
       <button class="save-btn" id="editThis">editar</button>
       <button class="del-btn" id="delThis">excluir</button>
@@ -1809,7 +2030,7 @@ function openTagEdit(tagId){
 /* cartões */
 function openCardsSheet(){
   let list=state.cards.length?state.cards.map(c=>`<div class="mini-item" data-card="${c.id}">
-      <span class="menu-ic"><svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="var(--txt)"/><path d="M2 10h20" stroke="var(--txt)"/></svg></span>
+      <span class="menu-ic" style="background:${cardColor(c)}"><svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#fff"/><path d="M2 10h20" stroke="#fff"/></svg></span>
       <div class="info"><div class="t">${c.name}</div><div class="d">fecha dia ${c.close} · vence dia ${c.due}</div></div>
       <span class="chev" style="color:var(--txt-3);font-size:20px">›</span>
     </div>`).join(""):`<div class="empty" style="padding:30px">Nenhum cartão cadastrado.</div>`;
@@ -1821,20 +2042,26 @@ function openCardsSheet(){
 }
 function openCardEdit(cardId){
   const c=cardId?state.cards.find(x=>x.id===cardId):null;
+  const used=new Set(state.cards.filter(x=>!c||x.id!==c.id).map(x=>x.color).filter(Boolean));
+  const defCol=c?(c.color||cardColor(c)):(CARD_COLORS.find(k=>!used.has(k))||CARD_COLORS[state.cards.length%CARD_COLORS.length]);
+  let color=defCol;
+  const sw=CARD_COLORS.map(k=>`<button class="swatch ${k===defCol?'sel':''}" data-c="${k}" style="background:${k}"></button>`).join("");
   openSheet(`<div class="sheet-head"><h2>${c?"editar cartão":"novo cartão"}</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form">
       <div class="field" style="border:none"><label>nome</label><input type="text" id="cName" placeholder="ex: Nubank" value="${c?c.name.replace(/"/g,'&quot;'):''}"></div>
+      <div class="field"><label>cor</label><div class="color-row" id="cColors">${sw}</div></div>
       <div class="field"><label>dia do fechamento</label><input type="text" inputmode="numeric" id="cClose" placeholder="1–31" value="${c?c.close:''}"></div>
       <div class="field"><label>dia do vencimento</label><input type="text" inputmode="numeric" id="cDue" placeholder="1–31" value="${c?c.due:''}"></div>
       <button class="save-btn" id="saveCard">${c?"salvar":"adicionar"}</button>
       ${c?`<button class="del-btn" id="delCard">excluir cartão</button>`:""}
     </div>`);
+  sheetEl.querySelectorAll("[data-c]").forEach(el=>el.onclick=()=>{ color=el.dataset.c; sheetEl.querySelectorAll(".swatch").forEach(x=>x.classList.remove("sel")); el.classList.add("sel"); });
   document.getElementById("saveCard").onclick=()=>{
     const name=document.getElementById("cName").value.trim();
     const close=Math.min(31,Math.max(1,parseInt(document.getElementById("cClose").value)||1));
     const due=Math.min(31,Math.max(1,parseInt(document.getElementById("cDue").value)||1));
     if(!name){ toast("Informe um nome"); return; }
-    if(c){ c.name=name; c.close=close; c.due=due; } else state.cards.push({id:uid(),name,close,due});
+    if(c){ c.name=name; c.close=close; c.due=due; c.color=color; } else state.cards.push({id:uid(),name,close,due,color});
     persist(); openCardsSheet(); toast("Cartão salvo");
   };
   if(c)document.getElementById("delCard").onclick=()=>{ if(confirm("Excluir cartão?")){ state.cards=state.cards.filter(x=>x.id!==c.id); persist(); openCardsSheet(); } };
@@ -2057,12 +2284,12 @@ function onTap(el, fn){
 }
 
 function closeAllOverlays(){
-  ["dayview","movview","perfview","ecoview","custoview","mediaview"].forEach(id=>{
+  ["dayview","movview","perfview","ecoview","custoview","mediaview","cardview"].forEach(id=>{
     const g=document.getElementById(id);
     if(g){ g.classList.remove("show"); g.style.display=""; g.innerHTML=""; }
   });
   const bd=document.getElementById("backdrop"); if(bd) bd.classList.remove("open");
-  dayOpen=null; perfOpen=ecoOpen=custoOpen=mediaOpen=movOpen=false; sheetOpen=false;
+  dayOpen=null; perfOpen=ecoOpen=custoOpen=mediaOpen=movOpen=cardviewOpen=false; sheetOpen=false;
   navStack=[];
 }
 
@@ -2134,7 +2361,7 @@ function buildMonthTable(y,m,opts){
   const isToday=d=>today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
   const dmap=doneMap();
   const sums={};
-  monthTx(y,m).forEach(t=>{ const d=+t.date.slice(8,10); (sums[d]=sums[d]||{})[t.type]=(sums[d][t.type]||0)+t.amount; });
+  monthTx(y,m).forEach(t=>{ const d=txDay(t); (sums[d]=sums[d]||{})[t.type]=(sums[d][t.type]||0)+t.amount; });
   const tot=monthTotals(y,m);
 
   let head=`<tr class="mc-cols"><th class="tcol-day">Dia</th>`;
