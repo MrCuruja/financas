@@ -238,8 +238,7 @@
 
   /* add form */
   .form{padding:6px 22px 0;}
-  .type-tabs{display:flex;gap:8px;overflow-x:auto;padding:6px 0 14px;scrollbar-width:none;}
-  .type-tabs::-webkit-scrollbar{display:none;}
+  .type-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:6px 0 14px;}
   .type-tab{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:30px;background:var(--bg);
     font-weight:700;font-size:15px;color:var(--txt-2);border:2px solid transparent;}
   .type-tab.sel{color:var(--txt);border-color:var(--txt);background:var(--surface);}
