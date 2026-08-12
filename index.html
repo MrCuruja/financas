@@ -328,6 +328,12 @@
   #movview{display:none;position:fixed;inset:0;z-index:52;background:var(--surface);overflow-y:auto;
     transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
   #movview.show{transform:translateX(0);}
+  #tagview{display:none;position:fixed;inset:0;z-index:52;background:var(--surface);overflow-y:auto;
+    transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
+  #tagview.show{transform:translateX(0);}
+  .tagview-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);}
+  .tagview-head .tvname{font-size:22px;font-weight:800;letter-spacing:-.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tagview-head .tvtot{margin-left:auto;font-size:22px;font-weight:800;white-space:nowrap;}
   .day-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--surface);}
   .day-screen .topbar{border-bottom:1px solid var(--line);}
   .arrow.dv-plain{font-size:28px;color:var(--txt);width:34px;}
@@ -533,7 +539,7 @@
     body.wide[data-tab="menu"] #content .card{border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:8px;}
 
     /* ---------- Detalhes no modo horizontal (dia, movimentações e cards do Totais) ---------- */
-    body.wide #dayview,body.wide #movview,body.wide #perfview,
+    body.wide #dayview,body.wide #movview,body.wide #tagview,body.wide #perfview,
     body.wide #ecoview,body.wide #custoview,body.wide #mediaview,body.wide #cardview{left:236px;background:var(--bg);}
     body.wide .day-screen,body.wide .perf-screen,body.wide .eco-screen,body.wide .card-screen{
       max-width:820px;margin:24px auto 48px;min-height:0;background:var(--surface);
@@ -561,6 +567,7 @@
 <div id="mediaview"></div>
 <div id="cardview"></div>
 <div id="movview"></div>
+<div id="tagview"></div>
 <div id="netbar"></div>
 <div id="cloudload"><div class="spinner"></div><div style="font-weight:700;color:var(--txt-2)">Sincronizando…</div></div>
 
@@ -1482,13 +1489,11 @@ function renderTags(){
   c.innerHTML=`<div class="subbar" style="padding-bottom:12px">
     <span style="font-weight:800;color:var(--txt);font-size:17px">tags</span>
     <span style="display:flex;gap:8px">
-      <button class="icon-btn" id="editTags"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
-      <button class="icon-btn" id="addTag"><svg viewBox="0 0 24 24"><path d="M20.6 12.6l-8 8a2 2 0 01-2.8 0L3 14V4h10l7.6 7.6a2 2 0 010 1z"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><path d="M15 9v6M12 12h6" stroke-width="1.6"/></svg></button>
+      <button class="icon-btn" id="addTag" title="nova tag"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </span>
   </div><div class="card scroll">${rows}</div>`;
   document.getElementById("addTag").onclick=()=>openTagEdit(null);
-  document.getElementById("editTags").onclick=()=>toast("Toque numa tag para editar");
-  c.querySelectorAll("[data-tag]").forEach(el=>el.onclick=()=>openTagEdit(el.dataset.tag));
+  c.querySelectorAll("[data-tag]").forEach(el=>el.onclick=()=>openTagView(el.dataset.tag));
 }
 
 /* =================== Render: Menu =================== */
@@ -1600,7 +1605,7 @@ function render(){
 
 /* =================== Página do dia =================== */
 const TYPE_WORD={entrada:"entrada",saida:"saída",diario:"diário",economia:"economia",cartao:"cartão"};
-function refresh(){ render(); if(dayOpen) renderDay(); if(movOpen) renderMov(); }
+function refresh(){ render(); if(dayOpen) renderDay(); if(movOpen) renderMov(); if(tagOpen) renderTagView(); }
 function openDay(dateStr){
   dayOpen=dateStr; view.dayFilter="todas"; renderDay();
   navPush(()=>{ dayOpen=null; const g=document.getElementById("dayview"); g.classList.remove("show");
@@ -1667,6 +1672,62 @@ function renderMov(){
   document.getElementById("mvFilter").onclick=()=>openFilterSheet(movFilter,f2=>{ movFilter=f2; view.filter=f2; renderMov(); });
   g.querySelectorAll("[data-tx]").forEach(el=>el.onclick=()=>openTxSheet(el.dataset.tx));
   const _nm=g.querySelector(".scroll"); if(_nm) _nm.scrollTop=_my;
+  requestAnimationFrame(()=>g.classList.add("show"));
+}
+
+/* =================== Tag: lançamentos do mês =================== */
+let tagOpen=false, tagViewId=null;
+function openTagView(tagId){
+  tagViewId=tagId; tagOpen=true; renderTagView();
+  navPush(()=>{ tagOpen=false; const g=document.getElementById("tagview");
+    g.classList.remove("show");
+    setTimeout(()=>{ if(!tagOpen){ g.style.display="none"; g.innerHTML=""; } },460); });
+}
+function closeTagView(){ if(tagOpen) navBack(); }
+function tagViewShift(delta){
+  if((view.m+=delta)<0){view.m=11;view.y--;} if(view.m>11){view.m=0;view.y++;}
+  render(); renderTagView();
+}
+function renderTagView(){
+  const g=document.getElementById("tagview");
+  const tg=state.tags.find(t=>t.id===tagViewId);
+  if(!tg){ closeTagView(); return; }
+  const _pt=g.querySelector(".scroll"); const _ty=_pt?_pt.scrollTop:0;
+  g.style.display="block";
+  const label=`${MN[view.m]}/${String(view.y).slice(2)}`;
+  let list=monthTx(view.y,view.m).filter(t=>t.tag===tg.name);
+  list.sort((a,b)=> b.date.localeCompare(a.date) || (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)));
+  const tot=list.reduce((s,t)=>s+t.amount,0);
+  const rows=list.length ? list.map(t=>`
+    <div class="txrow" data-tx="${t.id}">
+      ${badge(t.type)}
+      <div class="txinfo"><div class="txt">${(t.desc||TYPE_WORD[t.type]).replace(/</g,'&lt;')}</div><div class="txd">${t.date.slice(8,10)}/${t.date.slice(5,7)}</div></div>
+      <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${t.recur?'↺ ':''}${TYPE_WORD[t.type]}</div></div>
+    </div>`).join("")
+    : `<div class="empty">Nenhum lançamento com <b>${tg.name.replace(/</g,'&lt;')}</b> em ${label}.<br>Toque em ✎ para editar a tag.</div>`;
+  g.innerHTML=`<div class="day-screen">
+    <div class="topbar">
+      <button class="arrow dv-plain" id="tvBack">←</button>
+      <div class="month-nav">
+        <button class="arrow" id="tvPrev">‹</button>
+        <div class="month-label" style="font-size:26px;min-width:96px">${label}</div>
+        <button class="arrow" id="tvNext">›</button>
+      </div>
+      <button class="arrow dv-plain" id="tvEdit" title="editar tag"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+    </div>
+    <div class="tagview-head">
+      <span class="tagdot" style="background:${tg.color}"></span>
+      <span class="tvname">${tg.name.replace(/</g,'&lt;')}</span>
+      <span class="tvtot">${brl(tot)}</span>
+    </div>
+    <div class="scroll">${rows}</div>
+  </div>`;
+  document.getElementById("tvBack").onclick=closeTagView;
+  document.getElementById("tvPrev").onclick=()=>tagViewShift(-1);
+  document.getElementById("tvNext").onclick=()=>tagViewShift(1);
+  document.getElementById("tvEdit").onclick=()=>openTagEdit(tg.id);
+  g.querySelectorAll("[data-tx]").forEach(el=>el.onclick=()=>openTxSheet(el.dataset.tx));
+  const _nt=g.querySelector(".scroll"); if(_nt) _nt.scrollTop=_ty;
   requestAnimationFrame(()=>g.classList.add("show"));
 }
 
@@ -2022,9 +2083,9 @@ function openTagEdit(tagId){
     if(!name){ toast("Informe um nome"); return; }
     if(tg){ const old=tg.name; tg.name=name; tg.color=color; state.tx.forEach(t=>{ if(t.tag===old)t.tag=name; }); }
     else state.tags.push({id:uid(),name,color});
-    persist(); closeSheet(); render(); toast("Tag salva");
+    persist(); closeSheet(); refresh(); toast("Tag salva");
   };
-  if(tg)document.getElementById("delTag").onclick=()=>{ if(confirm("Excluir a tag? Os lançamentos ficam sem tag.")){ state.tags=state.tags.filter(t=>t.id!==tg.id); state.tx.forEach(t=>{ if(t.tag===tg.name)t.tag=""; }); persist(); closeSheet(); render(); toast("Tag excluída"); } };
+  if(tg)document.getElementById("delTag").onclick=()=>{ if(confirm("Excluir a tag? Os lançamentos ficam sem tag.")){ state.tags=state.tags.filter(t=>t.id!==tg.id); state.tx.forEach(t=>{ if(t.tag===tg.name)t.tag=""; }); persist(); closeSheet(); refresh(); toast("Tag excluída"); } };
 }
 
 /* cartões */
@@ -2284,12 +2345,12 @@ function onTap(el, fn){
 }
 
 function closeAllOverlays(){
-  ["dayview","movview","perfview","ecoview","custoview","mediaview","cardview"].forEach(id=>{
+  ["dayview","movview","tagview","perfview","ecoview","custoview","mediaview","cardview"].forEach(id=>{
     const g=document.getElementById(id);
     if(g){ g.classList.remove("show"); g.style.display=""; g.innerHTML=""; }
   });
   const bd=document.getElementById("backdrop"); if(bd) bd.classList.remove("open");
-  dayOpen=null; perfOpen=ecoOpen=custoOpen=mediaOpen=movOpen=cardviewOpen=false; sheetOpen=false;
+  dayOpen=null; perfOpen=ecoOpen=custoOpen=mediaOpen=movOpen=cardviewOpen=tagOpen=false; sheetOpen=false;
   navStack=[];
 }
 
