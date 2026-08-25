@@ -2001,11 +2001,14 @@ function openAddSheet(txId,presetDate){
       const n=Math.max(1,parc|0);
       const cents=Math.round(amt*100), q=Math.floor(cents/n), r=cents-q*n;
       const ay=+faturaChoice.slice(0,4), am=+faturaChoice.slice(5,7)-1;
+      const bd=+obj.date.slice(8,10);
       const series=n>1?uid():null;
       for(let k=0;k<n;k++){
         const tot=am+k, ny=ay+Math.floor(tot/12), nm=((tot%12)+12)%12;
+        const dateStr=dstr(ny,nm,Math.min(bd,daysInMonth(ny,nm)));
         const rec={id:uid(),...obj,amount:(q+(k<r?1:0))/100,
           desc:n>1?((obj.desc||TYPE_WORD.cartao)+` (${k+1}/${n})`):obj.desc,
+          date:dateStr,
           fatura:faturaKey(ny,nm)};
         if(n>1){ rec.series=series; rec.recur=true; }
         state.tx.push(rec);
