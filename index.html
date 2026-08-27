@@ -124,7 +124,7 @@
   .balrow{display:grid;grid-template-columns:46px 1fr 150px;align-items:stretch;border-bottom:1px solid var(--line);
     background:var(--surface);min-height:54px;position:relative;}
   .balrow .day{display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;color:var(--txt);position:relative;}
-  .balrow .day.today{background:var(--txt);color:#fff;}
+  .balrow .day.today{background:var(--txt);color:var(--surface);}
   .balrow .amt{overflow:hidden;font-size:17px;font-weight:600;}
   .balrow .amt .val{margin-left:auto;text-align:right;}
   .balrow .amt.zero{color:var(--txt-3);} .balrow .amt.zero .badge{background:#d2d2d8;}
@@ -143,6 +143,8 @@
   .subrow:first-child{border-top:none;}
   .subrow .lead{display:flex;align-items:center;justify-content:center;position:relative;align-self:stretch;}
   .subrow .lead .n{font-size:17px;font-weight:600;}
+  .subrow .lead .n.today{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;
+    border-radius:999px;background:var(--txt);color:var(--surface);font-weight:800;}
   .subrow .amt{overflow:hidden;font-size:17px;font-weight:600;}
   .subrow .amt .val{margin-left:auto;}
   .subrow .amt.zero{color:var(--txt-3);}
@@ -169,6 +171,8 @@
     transform:scale(.9) translateY(10px);opacity:0;transition:transform var(--dur) var(--ease-ios),opacity var(--dur) var(--ease-out);}
   #modal.open .modal-card{transform:none;opacity:1;}
   .modal-title{font-size:25px;font-weight:800;margin-bottom:20px;color:var(--txt);}
+  .modal-title+.modal-note{margin-top:-12px;}
+  .modal-note{font-size:15px;font-weight:600;line-height:1.45;color:var(--txt-2);margin-bottom:20px;}
   .modal-opt{display:block;width:100%;padding:16px;border-radius:30px;border:1.5px solid var(--line-strong);
     background:var(--surface);color:var(--txt);font-size:17px;font-weight:800;margin-bottom:14px;}
   .modal-opt.danger{color:var(--saida);border-color:var(--saida);}
@@ -244,6 +248,10 @@
   .type-tab.sel{color:var(--txt);border-color:var(--txt);background:var(--surface);}
   .amount-box{text-align:center;padding:14px 0 8px;}
   .amount-box .cur{font-size:20px;color:var(--txt-2);font-weight:700;}
+  .sign-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--surface);
+    color:var(--txt-2);font-size:20px;font-weight:800;line-height:1;vertical-align:middle;margin-right:6px;}
+  .sign-btn.neg{border-color:var(--saida);color:var(--saida);}
+  .field-hint{font-size:14px;font-weight:600;line-height:1.45;color:var(--txt-2);padding:4px 2px 2px;}
   .amount-box input{border:none;background:none;font-size:48px;font-weight:800;text-align:center;width:100%;color:var(--txt);outline:none;letter-spacing:-1px;}
   .field{padding:14px 0;border-top:1px solid var(--line);}
   .field label{display:block;font-size:14px;color:var(--txt-2);font-weight:700;margin-bottom:7px;}
@@ -578,7 +586,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-07-30 · nuvem-unica v1";
+const APP_VERSION="2026-08-27 · correções v2";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -615,6 +623,8 @@ if(FB_ON){
 const MN=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 const MN_FULL=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+/* escapa texto do usuário antes de interpolar em HTML (nomes de tag/cartão, descrições) */
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const brl=n=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n||0);
 const pad=n=>String(n).padStart(2,"0");
 const daysInMonth=(y,m)=>new Date(y,m+1,0).getDate();
@@ -680,12 +690,13 @@ function seed(){
     {id:uid(),date:dstr(y,m,15),type:"entrada",amount:4807.29,desc:"Salário Drogasil",tag:"Salário Drogasil"},
     {id:uid(),date:dstr(y,m,4),type:"saida",amount:200.00,desc:"Manutenção do carro",tag:"Carro"},
     {id:uid(),date:dstr(y,m,20),type:"saida",amount:400.00,desc:"Plano de saúde",tag:""},
-    {id:uid(),date:dstr(y,m,25),type:"saida",amount:1914.70,desc:"Fatura Inter",tag:""},
     {id:uid(),date:dstr(y,m,16),type:"saida",amount:303.06,desc:"Mercado",tag:"Mercado"},
     {id:uid(),date:dstr(y,m,5),type:"diario",amount:34.50,desc:"Lanche",tag:"Lanches"},
     {id:uid(),date:dstr(y,m,16),type:"diario",amount:52.16,desc:"Padaria",tag:"Lanches"},
-    {id:uid(),date:dstr(y,m,16),type:"cartao",amount:670.08,desc:"Compras",tag:"Mercado",card:"Inter"},
-    {id:uid(),date:dstr(y,m,9),type:"cartao",amount:250.00,desc:"Delivery",tag:"Lanches",card:"Santander Elite"},
+    // gastos de cartão já pesam no saldo no vencimento da fatura:
+    // NÃO lance a fatura também como saída, senão o valor conta duas vezes.
+    {id:uid(),date:dstr(y,m,16),type:"cartao",amount:670.08,desc:"Compras",tag:"Mercado",card:"Inter",fatura:faturaKey(y,m)},
+    {id:uid(),date:dstr(y,m,9),type:"cartao",amount:250.00,desc:"Delivery",tag:"Lanches",card:"Santander Elite",fatura:faturaKey(m===11?y+1:y,(m+1)%12)},
   ];
   return {tx,cards,tags,settings:{initial:0,forecast:0,theme:"light"}};
 }
@@ -693,7 +704,28 @@ function seed(){
 // Com Firebase: começa vazio e só carrega da nuvem (nada de cache local).
 // Sem Firebase (sem credenciais): modo local com localStorage.
 let state = FB_ON ? {tx:[],cards:[],tags:[],settings:{initial:0,forecast:0,theme:"light"}} : (Store.load()||seed());
-if(!state.settings)state.settings={initial:0,forecast:0,theme:"light"};
+
+/* Normaliza o estado e migra dados de versões antigas.
+   Idempotente: roda em qualquer carga (local, importação, nuvem). */
+function normalizeState(st){
+  if(!st||typeof st!=="object") return st;
+  if(!Array.isArray(st.tx)) st.tx=[];
+  if(!Array.isArray(st.cards)) st.cards=[];
+  if(!Array.isArray(st.tags)) st.tags=[];
+  if(!st.settings) st.settings={initial:0,forecast:0,theme:"light"};
+  if(typeof st.settings.initial!=="number") st.settings.initial=0;
+  if(typeof st.settings.forecast!=="number") st.settings.forecast=0;
+  if(!st.done||typeof st.done!=="object") st.done={};
+  // parcelas antigas foram gravadas como recur:true — reclassifica pelo sufixo "(k/n)"
+  st.tx.forEach(t=>{
+    if(!t.kind && t.series && t.recur && /\(\d+\/\d+\)\s*$/.test(t.desc||"")){
+      t.kind="parcela"; delete t.recur;
+    }
+  });
+  return st;
+}
+normalizeState(state);
+
 function persist(){
   if(!FB_ON){ Store.save(state); return; }                 // modo local
   if(!(authUid && cloudReady && cloudRef)) return;           // ainda não sincronizou com a nuvem
@@ -737,6 +769,19 @@ function txDay(t){
 }
 function faturaKey(y,m){ return `${y}-${pad(m+1)}`; }
 function faturaLabel(key){ const y=+key.slice(0,4), m=+key.slice(5,7)-1; return `${MN[m]}/${String(y).slice(2)}`; }
+/* Data real da compra. Parcelas de cartão têm "date" sintetizado (mês da fatura),
+   então a compra original fica guardada em "buyDate". */
+function buyDateOf(t){ return (t.type==="cartao"&&t.buyDate)?t.buyDate:t.date; }
+/* legenda pequena da linha de movimentação */
+function txSubLabel(t){
+  const d=buyDateOf(t), dm=`${d.slice(8,10)}/${d.slice(5,7)}`;
+  if(t.type==="cartao"&&t.fatura) return `${dm} · ${esc(t.card||"cartão")} · fatura ${faturaLabel(t.fatura)}`;
+  return dm;
+}
+/* parcela x recorrência: parcelas antigas só têm recur:true, então inferimos pelo campo kind */
+function isParcela(t){ return t.kind==="parcela"; }
+function isRecorrente(t){ return !!t.recur && !isParcela(t); }
+function seriesGlyph(t){ return isParcela(t)?'# ':(isRecorrente(t)?'↺ ':''); }
 /* fatura padrão de uma compra: se comprou depois do fechamento, cai na próxima */
 function defaultFatura(dateStr,cardName){
   let y=+dateStr.slice(0,4), m=+dateStr.slice(5,7)-1, d=+dateStr.slice(8,10);
@@ -836,7 +881,7 @@ function renderSaldos(){
         const v=sums[tp];const zero=v===0;
         const tItem=list.find(x=>x.type===tp);
         inner+=`<div class="subrow ${i===0&&has?'has':''}" ${tItem?`data-tx="${tItem.id}"`:""}>
-          <div class="lead" ${i===0?`data-done="${ds}"`:""}>${i===0?`<span class="n ${isToday(d)?'':''}">${d}</span>`:""}</div>
+          <div class="lead" ${i===0?`data-done="${ds}"`:""}>${i===0?`<span class="n ${isToday(d)?'today':''}">${d}</span>`:""}</div>
           <div class="amt ${zero?'zero':''}"><div class="amt-slide">${badge(tp,zero?'muted':'')}<span class="val">${brl(v)}</span></div></div>
           ${i===0?`<div class="bal" style="${balStyle(bals[d],maxAbs)}">${brl(bals[d])}</div>`:`<div class="bal" style="${balStyle(bals[d],maxAbs)};border:none"></div>`}
         </div>`;
@@ -979,7 +1024,7 @@ function renderTotais(){
 }
 function cardsChips(){
   if(!state.cards.length) return `<span style="color:var(--txt-3);font-weight:700">cadastre no menu ›</span>`;
-  return state.cards.slice(0,6).map(c=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;font-weight:700;color:var(--txt-2);font-size:13px"><span style="width:11px;height:11px;border-radius:3px;background:${cardColor(c)}"></span>${c.name}</span>`).join("")
+  return state.cards.slice(0,6).map(c=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;font-weight:700;color:var(--txt-2);font-size:13px"><span style="width:11px;height:11px;border-radius:3px;background:${cardColor(c)}"></span>${esc(c.name)}</span>`).join("")
     + (state.cards.length>6?`<span style="color:var(--txt-3);font-weight:700">+${state.cards.length-6}</span>`:"");
 }
 function movRow(type,val){
@@ -1407,7 +1452,7 @@ function renderCardsView(){
   if(cards.length>1){
     const mk=(id,label,color,active)=>`<button class="cardchip${active?' on':''}" data-cid="${id}">${color?`<span class="dot" style="background:${color}"></span>`:''}${label}</button>`;
     chips=`<div class="cardchips">`+mk("__all__","todos","",cardSel==="__all__")
-        +cards.map(c=>mk(c.id,c.name,cardColor(c),cardSel===c.id)).join("")+`</div>`;
+        +cards.map(c=>mk(c.id,esc(c.name),cardColor(c),cardSel===c.id)).join("")+`</div>`;
   }
   const shown=cardSel==="__all__"?cards:cards.filter(c=>c.id===cardSel);
 
@@ -1432,7 +1477,7 @@ function renderCardsView(){
       const vals=cardYearVals(c.name,cardYear), yTot=vals.reduce((a,b)=>a+b,0), col=cardColor(c);
       const list=vals.map((v,i)=>({v,i})).filter(x=>x.v>0)
         .map(x=>`<div class="perf-row"><span class="pm" style="font-size:18px">${MN_FULL[x.i]}</span><span class="pv" style="color:var(--txt)">${brl(x.v)}</span></div>`).join("");
-      body+=`<div class="cardblock-head"><span class="dot" style="background:${col}"></span><span class="nm">${c.name}</span><span class="tot">${brl(yTot)}</span></div>
+      body+=`<div class="cardblock-head"><span class="dot" style="background:${col}"></span><span class="nm">${esc(c.name)}</span><span class="tot">${brl(yTot)}</span></div>
         <div class="cardblock-sub">fecha dia ${c.close} · vence dia ${c.due}</div>
         <div class="perf-chart">${yTot>0?posBarChartSVG(vals,col,curM):'<div class="empty" style="padding:18px 6px">Sem gastos em '+cardYear+'.</div>'}</div>
         ${list||`<div class="empty" style="padding:12px 6px 22px">—</div>`}`;
@@ -1483,7 +1528,7 @@ function renderTags(){
   }else{
     state.tags.forEach(tg=>{
       const arrow=`<span class="tagdot" style="background:${tg.color}"><span style="position:absolute;right:-7px;top:0;width:0;height:0;border-style:solid;border-width:15px 0 15px 8px;border-color:transparent transparent transparent ${tg.color}"></span></span>`;
-      rows+=`<div class="rowitem" data-tag="${tg.id}">${arrow}<span class="label" style="margin-left:2px">${tg.name}</span><span class="value">${brl(totals[tg.name]||0)}</span></div>`;
+      rows+=`<div class="rowitem" data-tag="${tg.id}">${arrow}<span class="label" style="margin-left:2px">${esc(tg.name)}</span><span class="value">${brl(totals[tg.name]||0)}</span></div>`;
     });
   }
   c.innerHTML=`<div class="subbar" style="padding-bottom:12px">
@@ -1543,6 +1588,7 @@ function renderMenu(){
     <div class="section-title">gerenciar</div>
     <div class="card">
       <div class="menu-row" id="mCards">${ic('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>')}Cartões<span class="chev">›</span></div>
+      <div class="menu-row" id="mInitial">${ic('<path d="M12 3v18M8 7h6a3 3 0 010 6H9a3 3 0 000 6h7"/>')}Saldo inicial<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">${brl(state.settings.initial||0)}</span><span class="chev" style="margin-left:8px">›</span></div>
     </div>
     <div class="section-title">app</div>
     <div class="card">
@@ -1564,6 +1610,7 @@ function renderMenu(){
   }
   document.getElementById("mFull").onclick=toggleFullscreen;
   document.getElementById("mCards").onclick=openCardsSheet;
+  document.getElementById("mInitial").onclick=()=>promptValue("saldo inicial","initial","Quanto você tinha em conta antes do primeiro lançamento. Entra no saldo de todos os meses.");
   document.getElementById("mTheme").onclick=()=>{ state.settings.theme=dark?"light":"dark"; applyTheme(); persist(); render(); };
   document.getElementById("mExport").onclick=exportData;
   document.getElementById("mImport").onclick=importData;
@@ -1648,8 +1695,8 @@ function renderMov(){
   const rows=list.length ? list.map(t=>`
     <div class="txrow" data-tx="${t.id}">
       ${badge(t.type)}
-      <div class="txinfo"><div class="txt">${(t.desc||TYPE_WORD[t.type]).replace(/</g,'&lt;')}</div><div class="txd">${t.date.slice(8,10)}/${t.date.slice(5,7)}</div></div>
-      <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${t.recur?'↺ ':''}${TYPE_WORD[t.type]}</div></div>
+      <div class="txinfo"><div class="txt">${esc(t.desc||TYPE_WORD[t.type])}</div><div class="txd">${txSubLabel(t)}</div></div>
+      <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${seriesGlyph(t)}${TYPE_WORD[t.type]}</div></div>
     </div>`).join("")
     : `<div class="empty">Nenhuma movimentação em <b>${fLabel}</b> neste mês.<br>Toque em + para adicionar.</div>`;
   g.innerHTML=`<div class="day-screen">
@@ -1701,10 +1748,10 @@ function renderTagView(){
   const rows=list.length ? list.map(t=>`
     <div class="txrow" data-tx="${t.id}">
       ${badge(t.type)}
-      <div class="txinfo"><div class="txt">${(t.desc||TYPE_WORD[t.type]).replace(/</g,'&lt;')}</div><div class="txd">${t.date.slice(8,10)}/${t.date.slice(5,7)}</div></div>
-      <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${t.recur?'↺ ':''}${TYPE_WORD[t.type]}</div></div>
+      <div class="txinfo"><div class="txt">${esc(t.desc||TYPE_WORD[t.type])}</div><div class="txd">${txSubLabel(t)}</div></div>
+      <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${seriesGlyph(t)}${TYPE_WORD[t.type]}</div></div>
     </div>`).join("")
-    : `<div class="empty">Nenhum lançamento com <b>${tg.name.replace(/</g,'&lt;')}</b> em ${label}.<br>Toque em ✎ para editar a tag.</div>`;
+    : `<div class="empty">Nenhum lançamento com <b>${esc(tg.name)}</b> em ${label}.<br>Toque em ✎ para editar a tag.</div>`;
   g.innerHTML=`<div class="day-screen">
     <div class="topbar">
       <button class="arrow dv-plain" id="tvBack">←</button>
@@ -1717,7 +1764,7 @@ function renderTagView(){
     </div>
     <div class="tagview-head">
       <span class="tagdot" style="background:${tg.color}"></span>
-      <span class="tvname">${tg.name.replace(/</g,'&lt;')}</span>
+      <span class="tvname">${esc(tg.name)}</span>
       <span class="tvtot">${brl(tot)}</span>
     </div>
     <div class="scroll">${rows}</div>
@@ -1747,8 +1794,8 @@ function renderDay(){
   const rows=list.length ? list.map(t=>`
     <div class="txrow" data-tx="${t.id}">
       ${badge(t.type)}
-      <div class="txinfo"><div class="txt">${(t.desc||TYPE_WORD[t.type]).replace(/</g,'&lt;')}</div><div class="txd">${t.type==="cartao"&&t.fatura?`${t.date.slice(8,10)}/${t.date.slice(5,7)} · ${t.card||"cartão"}`:`${t.date.slice(8,10)}/${t.date.slice(5,7)}`}</div></div>
-      <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${t.recur?'↺ ':''}${TYPE_WORD[t.type]}</div></div>
+      <div class="txinfo"><div class="txt">${esc(t.desc||TYPE_WORD[t.type])}</div><div class="txd">${txSubLabel(t)}</div></div>
+      <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${seriesGlyph(t)}${TYPE_WORD[t.type]}</div></div>
     </div>`).join("")
     : `<div class="empty">Nenhuma movimentação neste dia${f!=="todas"?` em <b>${fLabel}</b>`:""}.<br>Toque em + para adicionar.</div>`;
   g.innerHTML=`<div class="day-screen">
@@ -1798,11 +1845,12 @@ backdrop.onclick=e=>{ if(e.target===backdrop) closeSheet(); };
 function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800); }
 
 /* modal de escolha (ex.: atualizar/excluir repetidas) -> Promise<key|null> */
-function pickModal({title,options,cancel="cancelar"}){
+function pickModal({title,note="",options,cancel="cancelar"}){
   return new Promise(resolve=>{
     const m=document.getElementById("modal");
     const settle=v=>{ m.classList.remove("open"); m.onclick=null; setTimeout(()=>{ if(!m.classList.contains("open")) m.innerHTML=""; },var_dur()); resolve(v); };
-    m.innerHTML=`<div class="modal-card"><div class="modal-title">${title}</div>`+
+    m.innerHTML=`<div class="modal-card"><div class="modal-title">${esc(title)}</div>`+
+      (note?`<div class="modal-note">${esc(note)}</div>`:"")+
       options.map(o=>`<button class="modal-opt ${o.danger?'danger':''}" data-k="${o.key}">${o.label}</button>`).join("")+
       `<button class="modal-cancel" data-k="__cancel">${cancel}</button></div>`;
     requestAnimationFrame(()=>m.classList.add("open"));
@@ -1830,14 +1878,15 @@ async function deleteTx(txId){
   const t=state.tx.find(x=>x.id===txId); if(!t) return false;
   const sibs=t.series?state.tx.filter(x=>x.series===t.series):[];
   if(sibs.length>1){
-    const scope=await pickModal({title:"excluir repetidas",options:[
+    const scope=await pickModal({title:isParcela(t)?"excluir parcelas":"excluir repetidas",options:[
       {key:"one",label:"excluir somente esta",danger:true},
       {key:"future",label:"excluir esta e as próximas",danger:true}]});
     if(scope===null) return false;
     if(scope==="one") state.tx=state.tx.filter(x=>x.id!==t.id);
     else state.tx=state.tx.filter(x=>!(x.series===t.series && x.date>=t.date));
   } else {
-    if(!confirm("Excluir este lançamento?")) return false;
+    const ok=await pickModal({title:"excluir lançamento",options:[{key:"del",label:"excluir",danger:true}]});
+    if(ok!=="del") return false;
     state.tx=state.tx.filter(x=>x.id!==t.id);
   }
   persist(); return true;
@@ -1861,14 +1910,14 @@ function openAddSheet(txId,presetDate){
   const defDate=editing?editing.date:(presetDate||dstr(view.y,view.m,(today.getMonth()===view.m&&today.getFullYear()===view.y)?today.getDate():1));
 
   const tabs=TYPE_ORDER.map(tp=>`<button class="type-tab ${tp===sel?'sel':''}" data-tp="${tp}">${badge(tp,"sm")} ${TYPES[tp].label.replace("gastos com ","")}</button>`).join("");
-  const tagOpts=`<option value="">— sem tag —</option>`+state.tags.map(t=>`<option value="${t.name}" ${editing&&editing.tag===t.name?'selected':''}>${t.name}</option>`).join("");
-  const cardOpts=`<option value="">— selecionar —</option>`+state.cards.map(c=>`<option value="${c.name}" ${editing&&editing.card===c.name?'selected':''}>${c.name}</option>`).join("");
+  const tagOpts=`<option value="">— sem tag —</option>`+state.tags.map(t=>`<option value="${esc(t.name)}" ${editing&&editing.tag===t.name?'selected':''}>${esc(t.name)}</option>`).join("");
+  const cardOpts=`<option value="">— selecionar —</option>`+state.cards.map(c=>`<option value="${esc(c.name)}" ${editing&&editing.card===c.name?'selected':''}>${esc(c.name)}</option>`).join("");
 
   openSheet(`<div class="sheet-head"><h2>${editing?"editar":"novo lançamento"}</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form">
       <div class="type-tabs" id="typeTabs">${tabs}</div>
       <div class="amount-box"><span class="cur">R$</span> <input id="fAmount" inputmode="numeric" maxlength="16" placeholder="0,00" value="${editing?amountMask(editing.amount):''}"></div>
-      <div class="field"><label>descrição</label><input type="text" id="fDesc" placeholder="ex: mercado, salário..." value="${editing?editing.desc.replace(/"/g,'&quot;'):''}"></div>
+      <div class="field"><label>descrição</label><input type="text" id="fDesc" placeholder="ex: mercado, salário..." value="${editing?esc(editing.desc):''}"></div>
       <div class="field"><label>data</label><input type="date" id="fDate" value="${defDate}"></div>
       ${editing?"":`<div id="repeatWrap" class="${sel==='cartao'?'hidden':''}"></div>`}
       <div class="field"><label>tag</label><select id="fTag">${tagOpts}</select></div>
@@ -1983,7 +2032,7 @@ function openAddSheet(txId,presetDate){
     if(editing){
       const sibs=editing.series?state.tx.filter(t=>t.series===editing.series):[];
       if(sibs.length>1){
-        const scope=await pickModal({title:"atualizar repetidas",options:[
+        const scope=await pickModal({title:isParcela(editing)?"atualizar parcelas":"atualizar repetidas",options:[
           {key:"one",label:"atualizar somente esta"},
           {key:"future",label:"atualizar esta e as próximas"}]});
         if(scope===null) return;   // cancelado — mantém o formulário aberto
@@ -2003,14 +2052,16 @@ function openAddSheet(txId,presetDate){
       const ay=+faturaChoice.slice(0,4), am=+faturaChoice.slice(5,7)-1;
       const bd=+obj.date.slice(8,10);
       const series=n>1?uid():null;
+      const buyDate=obj.date;                      // data real da compra, igual para todas as parcelas
       for(let k=0;k<n;k++){
         const tot=am+k, ny=ay+Math.floor(tot/12), nm=((tot%12)+12)%12;
         const dateStr=dstr(ny,nm,Math.min(bd,daysInMonth(ny,nm)));
         const rec={id:uid(),...obj,amount:(q+(k<r?1:0))/100,
           desc:n>1?((obj.desc||TYPE_WORD.cartao)+` (${k+1}/${n})`):obj.desc,
           date:dateStr,
+          buyDate,
           fatura:faturaKey(ny,nm)};
-        if(n>1){ rec.series=series; rec.recur=true; }
+        if(n>1){ rec.series=series; rec.kind="parcela"; }
         state.tx.push(rec);
       }
       toast(n>1?`${n} parcelas adicionadas`:"Lançamento adicionado");
@@ -2035,7 +2086,9 @@ function openAddSheet(txId,presetDate){
           dateStr=dstr(ny,nm,Math.min(bd,daysInMonth(ny,nm)));
         }
         const desc = repMode==="parcelado" ? ((obj.desc||TYPE_WORD[obj.type])+` (${k+1}/${n})`) : obj.desc;
-        state.tx.push({id:uid(),...obj,amount:per[k],desc,date:dateStr,series,recur:true});
+        const rec={id:uid(),...obj,amount:per[k],desc,date:dateStr,series};
+        if(repMode==="parcelado") rec.kind="parcela"; else rec.recur=true;
+        state.tx.push(rec);
       }
       toast(`${n} lançamentos adicionados`);
     }
@@ -2056,11 +2109,11 @@ function openTxSheet(txId){
   openSheet(`<div class="sheet-head"><h2>lançamento</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form" style="padding-bottom:24px">
       <div class="amount-box"><span class="cur">R$</span> <span style="font-size:44px;font-weight:800">${t.amount.toFixed(2).replace('.',',')}</span></div>
-      <div style="text-align:center;margin:-6px 0 16px">${badge(t.type,"sm")} <span style="font-weight:700;color:var(--txt-2)">${TYPES[t.type].label}${t.card?' · '+t.card:''}${t.tag?' · '+t.tag:''}</span></div>
-      <div style="text-align:center;font-size:18px;font-weight:600;margin-bottom:4px">${t.desc||"(sem descrição)"}</div>
+      <div style="text-align:center;margin:-6px 0 16px">${badge(t.type,"sm")} <span style="font-weight:700;color:var(--txt-2)">${TYPES[t.type].label}${t.card?' · '+esc(t.card):''}${t.tag?' · '+esc(t.tag):''}</span></div>
+      <div style="text-align:center;font-size:18px;font-weight:600;margin-bottom:4px">${esc(t.desc)||"(sem descrição)"}</div>
       <div style="text-align:center;color:var(--txt-2);font-weight:600">${t.date.split('-').reverse().join('/')}</div>
       ${t.type==="cartao"&&t.fatura?`<div style="text-align:center;color:var(--cartao);font-weight:800;margin-top:6px">fatura de ${faturaLabel(t.fatura)}</div>`:""}
-      ${t.series&&state.tx.some(x=>x.series===t.series&&x.id!==t.id)?`<div style="text-align:center;color:var(--txt-2);font-weight:700;margin-top:8px">↺ lançamento repetido</div>`:""}
+      ${t.series&&state.tx.some(x=>x.series===t.series&&x.id!==t.id)?`<div style="text-align:center;color:var(--txt-2);font-weight:700;margin-top:8px">${isParcela(t)?"# lançamento parcelado":"↺ lançamento repetido"}</div>`:""}
       <button class="save-btn" id="editThis">editar</button>
       <button class="del-btn" id="delThis">excluir</button>
     </div>`);
@@ -2074,7 +2127,7 @@ function openTagEdit(tagId){
   const sw=TAG_COLORS.map(c=>`<button class="swatch ${tg&&tg.color===c?'sel':(!tg&&c===TAG_COLORS[0]?'sel':'')}" data-c="${c}" style="background:${c}"></button>`).join("");
   openSheet(`<div class="sheet-head"><h2>${tg?"editar tag":"nova tag"}</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form">
-      <div class="field" style="border:none"><label>nome</label><input type="text" id="tgName" placeholder="ex: Mercado" value="${tg?tg.name.replace(/"/g,'&quot;'):''}"></div>
+      <div class="field" style="border:none"><label>nome</label><input type="text" id="tgName" placeholder="ex: Mercado" value="${tg?esc(tg.name):''}"></div>
       <div class="field"><label>cor</label><div class="color-row" id="tgColors">${sw}</div></div>
       <button class="save-btn" id="saveTag">${tg?"salvar":"criar tag"}</button>
       ${tg?`<button class="del-btn" id="delTag">excluir tag</button>`:""}
@@ -2084,18 +2137,30 @@ function openTagEdit(tagId){
   document.getElementById("saveTag").onclick=()=>{
     const name=document.getElementById("tgName").value.trim();
     if(!name){ toast("Informe um nome"); return; }
+    if(state.tags.some(x=>x.name===name&&(!tg||x.id!==tg.id))){ toast("Já existe uma tag com esse nome"); return; }
     if(tg){ const old=tg.name; tg.name=name; tg.color=color; state.tx.forEach(t=>{ if(t.tag===old)t.tag=name; }); }
     else state.tags.push({id:uid(),name,color});
     persist(); closeSheet(); refresh(); toast("Tag salva");
   };
-  if(tg)document.getElementById("delTag").onclick=()=>{ if(confirm("Excluir a tag? Os lançamentos ficam sem tag.")){ state.tags=state.tags.filter(t=>t.id!==tg.id); state.tx.forEach(t=>{ if(t.tag===tg.name)t.tag=""; }); persist(); closeSheet(); refresh(); toast("Tag excluída"); } };
+  if(tg)document.getElementById("delTag").onclick=async()=>{
+    const n=state.tx.filter(t=>t.tag===tg.name).length;
+    const ok=await pickModal({
+      title:`excluir ${tg.name}`,
+      note:n?`${n} ${n===1?"lançamento ficará":"lançamentos ficarão"} sem tag. Os valores não mudam.`:"Nenhum lançamento usa esta tag.",
+      options:[{key:"del",label:"excluir tag",danger:true}]
+    });
+    if(ok!=="del") return;
+    state.tags=state.tags.filter(t=>t.id!==tg.id);
+    state.tx.forEach(t=>{ if(t.tag===tg.name)t.tag=""; });
+    persist(); closeSheet(); refresh(); toast("Tag excluída");
+  };
 }
 
 /* cartões */
 function openCardsSheet(){
   let list=state.cards.length?state.cards.map(c=>`<div class="mini-item" data-card="${c.id}">
       <span class="menu-ic" style="background:${cardColor(c)}"><svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#fff"/><path d="M2 10h20" stroke="#fff"/></svg></span>
-      <div class="info"><div class="t">${c.name}</div><div class="d">fecha dia ${c.close} · vence dia ${c.due}</div></div>
+      <div class="info"><div class="t">${esc(c.name)}</div><div class="d">fecha dia ${c.close} · vence dia ${c.due}</div></div>
       <span class="chev" style="color:var(--txt-3);font-size:20px">›</span>
     </div>`).join(""):`<div class="empty" style="padding:30px">Nenhum cartão cadastrado.</div>`;
   openSheet(`<div class="sheet-head"><h2>cartões</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
@@ -2112,7 +2177,7 @@ function openCardEdit(cardId){
   const sw=CARD_COLORS.map(k=>`<button class="swatch ${k===defCol?'sel':''}" data-c="${k}" style="background:${k}"></button>`).join("");
   openSheet(`<div class="sheet-head"><h2>${c?"editar cartão":"novo cartão"}</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form">
-      <div class="field" style="border:none"><label>nome</label><input type="text" id="cName" placeholder="ex: Nubank" value="${c?c.name.replace(/"/g,'&quot;'):''}"></div>
+      <div class="field" style="border:none"><label>nome</label><input type="text" id="cName" placeholder="ex: Nubank" value="${c?esc(c.name):''}"></div>
       <div class="field"><label>cor</label><div class="color-row" id="cColors">${sw}</div></div>
       <div class="field"><label>dia do fechamento</label><input type="text" inputmode="numeric" id="cClose" placeholder="1–31" value="${c?c.close:''}"></div>
       <div class="field"><label>dia do vencimento</label><input type="text" inputmode="numeric" id="cDue" placeholder="1–31" value="${c?c.due:''}"></div>
@@ -2125,21 +2190,49 @@ function openCardEdit(cardId){
     const close=Math.min(31,Math.max(1,parseInt(document.getElementById("cClose").value)||1));
     const due=Math.min(31,Math.max(1,parseInt(document.getElementById("cDue").value)||1));
     if(!name){ toast("Informe um nome"); return; }
-    if(c){ c.name=name; c.close=close; c.due=due; c.color=color; } else state.cards.push({id:uid(),name,close,due,color});
+    if(state.cards.some(x=>x.name===name&&(!c||x.id!==c.id))){ toast("Já existe um cartão com esse nome"); return; }
+    if(c){
+      const old=c.name;
+      c.name=name; c.close=close; c.due=due; c.color=color;
+      // lançamentos guardam o NOME do cartão: sem este cascade eles ficariam órfãos
+      if(old!==name) state.tx.forEach(t=>{ if(t.card===old) t.card=name; });
+    } else state.cards.push({id:uid(),name,close,due,color});
     persist(); openCardsSheet(); toast("Cartão salvo");
   };
-  if(c)document.getElementById("delCard").onclick=()=>{ if(confirm("Excluir cartão?")){ state.cards=state.cards.filter(x=>x.id!==c.id); persist(); openCardsSheet(); } };
+  if(c)document.getElementById("delCard").onclick=async()=>{
+    const n=state.tx.filter(t=>t.card===c.name).length;
+    const ok=await pickModal({
+      title:n?`excluir ${c.name}`:"excluir cartão",
+      note:n?`${n} ${n===1?"lançamento usa":"lançamentos usam"} este cartão. Sem cartão, ${n===1?"ele passa":"eles passam"} a pesar no saldo no último dia da fatura.`:"",
+      options:[{key:"del",label:"excluir cartão",danger:true}]
+    });
+    if(ok!=="del") return;
+    state.cards=state.cards.filter(x=>x.id!==c.id);
+    persist(); openCardsSheet(); refresh(); toast("Cartão excluído");
+  };
 }
 
 /* valores de configuração */
-function promptValue(title,key){
-  openSheet(`<div class="sheet-head"><h2>${title}</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
+function promptValue(title,key,hint){
+  const cur=state.settings[key]||0;
+  let neg=cur<0;
+  openSheet(`<div class="sheet-head"><h2>${esc(title)}</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form">
-      <div class="amount-box"><span class="cur">R$</span> <input id="pv" inputmode="decimal" placeholder="0,00" value="${(state.settings[key]||0).toFixed(2).replace('.',',')}"></div>
+      <div class="amount-box"><button type="button" class="sign-btn" id="pvSign">${neg?"−":"+"}</button><span class="cur">R$</span> <input id="pv" inputmode="numeric" maxlength="16" placeholder="0,00" value="${cur?amountMask(Math.abs(cur)):""}"></div>
+      ${hint?`<div class="field-hint">${esc(hint)}</div>`:""}
       <button class="save-btn" id="pvSave">salvar</button>
     </div>`);
-  document.getElementById("pvSave").onclick=()=>{ state.settings[key]=parseAmount(document.getElementById("pv").value); persist(); closeSheet(); render(); toast("Salvo"); };
-  setTimeout(()=>document.getElementById("pv").focus(),300);
+  const el=document.getElementById("pv");
+  el.addEventListener("input",()=>{ el.value=centsMask(el.value); });
+  const sg=document.getElementById("pvSign");
+  sg.onclick=()=>{ neg=!neg; sg.textContent=neg?"−":"+"; sg.classList.toggle("neg",neg); };
+  sg.classList.toggle("neg",neg);
+  document.getElementById("pvSave").onclick=()=>{
+    const v=parseAmount(el.value);
+    state.settings[key]=neg?-v:v;
+    persist(); closeSheet(); render(); toast("Salvo");
+  };
+  setTimeout(()=>el.focus(),300);
 }
 
 /* export / import */
@@ -2152,7 +2245,7 @@ function exportData(){
 function importData(){
   const inp=document.createElement("input"); inp.type="file"; inp.accept="application/json,.json";
   inp.onchange=()=>{ const f=inp.files[0]; if(!f)return; const r=new FileReader();
-    r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!d.tx)throw 0; state=d; if(!state.settings)state.settings={initial:0,forecast:0,theme:"light"}; persist(); applyTheme(); render(); toast("Dados importados"); }catch(e){ toast("Arquivo inválido"); } };
+    r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!d.tx)throw 0; state=normalizeState(d); persist(); applyTheme(); render(); toast("Dados importados"); }catch(e){ toast("Arquivo inválido"); } };
     r.readAsText(f); };
   inp.click();
 }
@@ -2180,8 +2273,7 @@ function setupAuthGate(){
 }
 let cloudRef=null, loadFallback=null, lastServerSync=null;
 function adoptCloud(data){
-  state=data;
-  if(!state.settings) state.settings={initial:0,forecast:0,theme:"light"};
+  state=normalizeState(data);
   applyTheme(); refresh();
 }
 function subscribeCloud(){
@@ -2208,10 +2300,15 @@ function subscribeCloud(){
       hideLoading();
       if(view.tab==="menu") render();
     }else{
-      // veio do cache (provavelmente offline): nunca sobrescreve a nuvem
-      if(snap.exists){
+      // Veio do cache (provavelmente offline). Só serve para PREENCHER a primeira
+      // carga, enquanto o servidor não respondeu. Depois que o servidor falou
+      // (cloudReady), um snapshot de cache é sempre mais velho que o estado atual
+      // e NUNCA pode sobrescrevê-lo — foi assim que já se perdeu dado antes.
+      if(snap.exists && !cloudReady){
         const data=snap.data();
         if(JSON.stringify(data)!==JSON.stringify(state)) adoptCloud(data);
+        hideLoading();
+      }else if(snap.exists){
         hideLoading();
       }else if(!loadFallback){
         // sem resposta do servidor: espera um pouco e mostra o app (vazio) com o aviso
