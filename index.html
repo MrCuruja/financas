@@ -1740,14 +1740,14 @@ function renderDay(){
   const label=`${pad(D)}/${Mo}`;
   const f=view.dayFilter;
   const fType=({saidas:"saida",entradas:"entrada",diarios:"diario",economias:"economia",cartao:"cartao"})[f];
-  let list=state.tx.filter(t=>t.date===dayOpen);
+  let list=state.tx.filter(t=>txMonthKey(t)===dayOpen.slice(0,7)&&txDay(t)===+dayOpen.slice(8,10));
   if(f!=="todas") list=list.filter(t=>t.type===fType);
   list.sort((a,b)=>TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type));
   const fLabel=FILTER_LABEL[f]||f;
   const rows=list.length ? list.map(t=>`
     <div class="txrow" data-tx="${t.id}">
       ${badge(t.type)}
-      <div class="txinfo"><div class="txt">${(t.desc||TYPE_WORD[t.type]).replace(/</g,'&lt;')}</div><div class="txd">${t.date.slice(8,10)}/${t.date.slice(5,7)}</div></div>
+      <div class="txinfo"><div class="txt">${(t.desc||TYPE_WORD[t.type]).replace(/</g,'&lt;')}</div><div class="txd">${t.type==="cartao"&&t.fatura?`${t.date.slice(8,10)}/${t.date.slice(5,7)} · ${t.card||"cartão"}`:`${t.date.slice(8,10)}/${t.date.slice(5,7)}`}</div></div>
       <div class="txright"><div class="txval">${brl(t.amount)}</div><div class="txlbl">${t.recur?'↺ ':''}${TYPE_WORD[t.type]}</div></div>
     </div>`).join("")
     : `<div class="empty">Nenhuma movimentação neste dia${f!=="todas"?` em <b>${fLabel}</b>`:""}.<br>Toque em + para adicionar.</div>`;
