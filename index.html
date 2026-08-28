@@ -90,8 +90,12 @@
   .arrow svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;
     stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;}
   .month-label{font-size:27px;font-weight:800;letter-spacing:-.5px;min-width:118px;text-align:center;}
-  /* espaçador: mantém o mês centralizado no lugar do antigo botão do canto direito */
-  .topbar-spacer{width:44px;height:44px;flex:0 0 auto;}
+  /* atalho de busca no canto superior direito (ocupa o lugar do antigo botão decorativo) */
+  .topbar-search{width:44px;height:44px;flex:0 0 auto;border:none;background:none;padding:0;
+    display:flex;align-items:center;justify-content:center;color:var(--txt);}
+  .topbar-search svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;
+    stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+  .topbar-search:active{transform:scale(.9);}
 
   /* ---------- Filter bar (saldos) ---------- */
   .subbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 8px;
@@ -265,9 +269,24 @@
   .fc-help li:last-child{margin-bottom:0;}
   .fc-help li::before{content:"✓";position:absolute;left:0;top:0;color:var(--diario);font-weight:900;}
 
-  /* ---------- Busca ---------- */
+  /* ---------- Busca (painel flutuante) ---------- */
+  #searchview{display:none;position:fixed;inset:0;z-index:60;
+    background:rgba(0,0,0,.34);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    opacity:0;transition:opacity var(--dur) var(--ease-out);
+    padding:calc(var(--safe-top) + 10px) 12px 12px;}
+  #searchview.show{opacity:1;}
+  .sq-panel{max-width:460px;margin:0 auto;background:var(--bg);border-radius:20px;overflow:hidden;
+    display:flex;flex-direction:column;max-height:100%;
+    box-shadow:0 18px 50px rgba(0,0,0,.34);
+    transform:translateY(-14px) scale(.97);opacity:.6;
+    transition:transform var(--dur) var(--ease-ios),opacity var(--dur) var(--ease-out);}
+  #searchview.show .sq-panel{transform:none;opacity:1;}
+  .sq-top{display:flex;align-items:center;gap:10px;padding:12px 14px 10px;background:var(--surface);}
+  .sq-close{flex:0 0 auto;border:none;background:none;color:var(--txt-2);font-size:16px;font-weight:700;padding:6px 2px;}
+  /* a lista rola DENTRO do painel: os filtros ficam sempre visíveis */
+  .sq-results{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);}
   .search-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--bg);display:flex;flex-direction:column;}
-  .sq-box{display:flex;align-items:center;gap:9px;margin:12px 18px 10px;padding:11px 14px;border-radius:14px;
+  .sq-box{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:14px;
     background:var(--surface);border:1px solid var(--line-strong);}
   .sq-box .sq-ic svg{width:19px;height:19px;display:block;fill:none;stroke:var(--txt-3);stroke-width:2.4;
     stroke-linecap:round;stroke-linejoin:round;}
@@ -275,7 +294,7 @@
   .sq-box input::-webkit-search-cancel-button{display:none;}
   .sq-clear{width:24px;height:24px;border-radius:50%;border:none;background:var(--line-strong);color:var(--txt-2);
     font-size:13px;font-weight:800;flex:0 0 auto;}
-  .sq-chips{display:flex;gap:7px;overflow-x:auto;padding:0 18px 9px;scrollbar-width:none;}
+  .sq-chips{display:flex;gap:7px;overflow-x:auto;padding:0 14px 9px;scrollbar-width:none;background:var(--surface);}
   .sq-chips::-webkit-scrollbar{display:none;}
   .sq-chip{flex:0 0 auto;padding:7px 13px;border-radius:30px;border:1.5px solid var(--line-strong);
     background:var(--surface);color:var(--txt-2);font-size:14px;font-weight:700;white-space:nowrap;
@@ -283,8 +302,9 @@
       border-color var(--dur-fast) var(--ease-out);}
   .sq-chip.sel{background:var(--txt);border-color:var(--txt);color:var(--surface);}
   .sq-chip:active{transform:scale(.95);}
-  .sq-sum{display:flex;justify-content:space-between;align-items:baseline;padding:6px 20px 10px;
-    font-size:14px;font-weight:700;color:var(--txt-2);}
+  .sq-sum{display:flex;justify-content:space-between;align-items:baseline;padding:9px 18px;
+    font-size:14px;font-weight:700;color:var(--txt-2);background:var(--surface);
+    border-top:1px solid var(--line);}
   .sq-mes{padding:14px 20px 7px;font-size:13px;font-weight:800;color:var(--txt-3);
     text-transform:lowercase;letter-spacing:.3px;background:var(--bg);}
 
@@ -418,7 +438,7 @@
 
   /* ---------- toque tátil estilo iOS ---------- */
   .filter-pill,.type-tab,.tab,.fab,.step-btn,.done-toggle,.modal-opt,.modal-cancel,.swatch,.arrow,.icon-btn,
-  .save-btn,.del-btn,.xbtn,.cal-badge,.rep-x{
+  .save-btn,.del-btn,.xbtn,.cal-badge,.rep-x,.topbar-search{
     transition:transform var(--dur-fast) var(--press),background-color var(--dur-fast) var(--ease-out),
       border-color var(--dur-fast) var(--ease-out),opacity var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
   .filter-pill:active,.type-tab:active,.tab:active,.step-btn:active,.done-toggle:active,.modal-opt:active,
@@ -473,6 +493,9 @@
   .txrow .txlbl{font-size:16px;color:var(--txt-2);font-weight:600;margin-top:3px;}
 
   /* ---------- Performance (ano) ---------- */
+  #faturaview{display:none;position:fixed;inset:0;z-index:56;background:var(--surface);overflow-y:auto;
+    transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
+  #faturaview.show{transform:translateX(0);}
   #perfview,#cardview{display:none;position:fixed;inset:0;z-index:55;background:var(--surface);overflow-y:auto;
     transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
   #perfview.show,#cardview.show{transform:translateX(0);}
@@ -600,7 +623,7 @@
 
     /* ---------- Cabeçalho ---------- */
     body.wide .topbar{justify-content:center;padding-top:calc(var(--safe-top) + 16px);}
-    body.wide .cal-badge,body.wide .topbar-spacer{display:none;}
+    body.wide .cal-badge{display:none;}
     body.wide .month-label{font-size:24px;}
 
     /* ---------- Saldos: tabela completa (todas as colunas) ---------- */
@@ -716,7 +739,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-27 · checkbox animado v8";
+const APP_VERSION="2026-08-27 · busca flutuante v9";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -1031,12 +1054,16 @@ function renderHeader(){
       <div class="month-label">${label}</div>
       <button class="arrow" id="nextM">${IC_NEXT}</button>
     </div>
-    <div class="topbar-spacer"></div>
+    <button class="topbar-search" id="btnBusca" aria-label="Buscar lançamentos">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg>
+    </button>
   </div>`;
   h.innerHTML=html;
   document.getElementById("prevM").onclick=()=>{ if(--view.m<0){view.m=11;view.y--;} render(); };
   document.getElementById("nextM").onclick=()=>{ if(++view.m>11){view.m=0;view.y++;} render(); };
   document.getElementById("todayBtn").onclick=()=>{ view.y=today.getFullYear();view.m=today.getMonth(); render(); };
+  const _bs=document.getElementById("btnBusca");
+  if(_bs)_bs.onclick=()=>{ searchQ=""; searchType="todas"; searchStatus="todos"; openSearch(); };
 }
 
 /* cor termômetro do saldo */
@@ -2217,7 +2244,7 @@ function searchResults(){
 
 function renderSearch(){
   const g=document.getElementById("searchview");
-  const _ps=g.querySelector(".scroll"); const _sy=_ps?_ps.scrollTop:0;
+  const _ps=g.querySelector(".sq-results"); const _sy=_ps?_ps.scrollTop:0;
   g.style.display="block";
   const res=searchResults();
   const temFiltro=!!(searchQ||"").trim()||searchType!=="todas"||searchStatus!=="todos";
@@ -2247,16 +2274,14 @@ function renderSearch(){
 
   const chip=(k,lbl,cur,attr)=>`<button class="sq-chip ${k===cur?'sel':''}" ${attr}="${k}">${lbl}</button>`;
 
-  g.innerHTML=`<div class="search-screen">
-    <div class="topbar">
-      <button class="arrow dv-plain" id="sqBack">${IC_BACK}</button>
-      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">buscar</div>
-      <div style="width:34px"></div>
-    </div>
-    <div class="sq-box">
-      <span class="sq-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
-      <input id="sqInput" type="search" placeholder="descrição, tag, cartão ou valor" value="${esc(searchQ)}" autocomplete="off">
-      ${searchQ?`<button class="sq-clear" id="sqClear">✕</button>`:""}
+  g.innerHTML=`<div class="sq-panel">
+    <div class="sq-top">
+      <div class="sq-box">
+        <span class="sq-ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/></svg></span>
+        <input id="sqInput" type="search" placeholder="descrição, tag, cartão ou valor" value="${esc(searchQ)}" autocomplete="off">
+        ${searchQ?`<button class="sq-clear" id="sqClear">✕</button>`:""}
+      </div>
+      <button class="sq-close" id="sqBack">fechar</button>
     </div>
     <div class="sq-chips">
       ${chip("todas","tudo",searchType,"data-st")}
@@ -2270,10 +2295,11 @@ function renderSearch(){
     </div>
     ${temFiltro?`<div class="sq-sum"><span>${res.length} ${res.length===1?"resultado":"resultados"}</span>
       <span style="color:${tot<0?'var(--saida)':'var(--green)'}">${brl(tot)}</span></div>`:""}
-    <div class="scroll">${res.length?rows:vazio}</div>
+    <div class="sq-results">${res.length?rows:vazio}</div>
   </div>`;
 
   document.getElementById("sqBack").onclick=closeSearch;
+  g.onclick=e=>{ if(e.target===g) closeSearch(); };   // toque fora fecha
   const inp=document.getElementById("sqInput");
   inp.oninput=()=>{ searchQ=inp.value; const p=inp.selectionStart; renderSearch();
     const n=document.getElementById("sqInput"); n.focus(); try{ n.setSelectionRange(p,p); }catch(e){} };
@@ -2282,7 +2308,7 @@ function renderSearch(){
   g.querySelectorAll("[data-st]").forEach(el=>el.onclick=()=>{ searchType=el.dataset.st; renderSearch(); });
   g.querySelectorAll("[data-ss]").forEach(el=>el.onclick=()=>{ searchStatus=el.dataset.ss; renderSearch(); });
   g.querySelectorAll("[data-tx]").forEach(el=>el.onclick=()=>openTxSheet(el.dataset.tx));
-  const _ns=g.querySelector(".scroll"); if(_ns) _ns.scrollTop=_sy;
+  const _ns=g.querySelector(".sq-results"); if(_ns) _ns.scrollTop=_sy;
   requestAnimationFrame(()=>g.classList.add("show"));
 }
 
