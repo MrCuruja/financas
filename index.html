@@ -87,9 +87,8 @@
   .month-nav{display:flex;align-items:center;gap:14px;}
   .month-nav .arrow{font-size:26px;color:var(--txt-3);width:30px;height:30px;line-height:1;display:flex;align-items:center;justify-content:center;}
   .month-label{font-size:27px;font-weight:800;letter-spacing:-.5px;min-width:118px;text-align:center;}
-  .grid-icon{width:34px;height:34px;flex:0 0 auto;display:grid;grid-template-columns:repeat(3,1fr);
-    grid-template-rows:repeat(3,1fr);gap:2px;}
-  .grid-icon span{background:var(--coral);border-radius:2px;}
+  /* espaçador: mantém o mês centralizado no lugar do antigo botão do canto direito */
+  .topbar-spacer{width:44px;height:44px;flex:0 0 auto;}
 
   /* ---------- Filter bar (saldos) ---------- */
   .subbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 8px;
@@ -103,6 +102,9 @@
   .badge svg{width:15px;height:15px;}
   .badge.entrada{background:var(--entrada);} .badge.saida{background:var(--saida);}
   .badge.diario{background:var(--diario);} .badge.economia{background:var(--economia);}
+  /* previsão: mesmo "D" do diário, mas em contorno tracejado — valor projetado, não real */
+  .badge.previsao{background:transparent;border:2px dashed var(--diario);color:var(--diario);}
+  .badge.previsao.muted{opacity:.45;}
   .badge.cartao{background:var(--cartao);} .badge.todas{background:var(--txt-2);}
   .badge.muted{background:#d2d2d8;} [data-theme="dark"] .badge.muted{background:#3a3a3d;}
 
@@ -252,6 +254,13 @@
     color:var(--txt-2);font-size:20px;font-weight:800;line-height:1;vertical-align:middle;margin-right:6px;}
   .sign-btn.neg{border-color:var(--saida);color:var(--saida);}
   .field-hint{font-size:14px;font-weight:600;line-height:1.45;color:var(--txt-2);padding:4px 2px 2px;}
+  .fc-month{text-align:center;font-size:15px;font-weight:700;color:var(--txt-2);margin:-4px 0 14px;}
+  .fc-help{list-style:none;margin:0 0 4px;padding:14px 16px;background:var(--surface-2);border-radius:16px;
+    border:1px solid var(--line);}
+  .fc-help li{position:relative;padding-left:24px;margin-bottom:11px;font-size:15px;font-weight:600;
+    line-height:1.45;color:var(--txt-2);}
+  .fc-help li:last-child{margin-bottom:0;}
+  .fc-help li::before{content:"✓";position:absolute;left:0;top:0;color:var(--diario);font-weight:900;}
   .amount-box input{border:none;background:none;font-size:48px;font-weight:800;text-align:center;width:100%;color:var(--txt);outline:none;letter-spacing:-1px;}
   .field{padding:14px 0;border-top:1px solid var(--line);}
   .field label{display:block;font-size:14px;color:var(--txt-2);font-weight:700;margin-bottom:7px;}
@@ -301,12 +310,12 @@
 
   /* ---------- toque tátil estilo iOS ---------- */
   .filter-pill,.type-tab,.tab,.fab,.step-btn,.done-toggle,.modal-opt,.modal-cancel,.swatch,.arrow,.icon-btn,
-  .save-btn,.del-btn,.xbtn,.cal-badge,.grid-icon,.rep-x{
+  .save-btn,.del-btn,.xbtn,.cal-badge,.rep-x{
     transition:transform var(--dur-fast) var(--press),background-color var(--dur-fast) var(--ease-out),
       border-color var(--dur-fast) var(--ease-out),opacity var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
   .filter-pill:active,.type-tab:active,.tab:active,.step-btn:active,.done-toggle:active,.modal-opt:active,
   .modal-cancel:active,.arrow:active,.icon-btn:active,.save-btn:active,.del-btn:active,.swatch:active,
-  .xbtn:active,.cal-badge:active,.grid-icon:active,.rep-x:active{transform:scale(.94);}
+  .xbtn:active,.cal-badge:active,.rep-x:active{transform:scale(.94);}
   .fab:active{transform:scale(.88);}
   .menu-row,.rowitem,.txrow,.sheet-opt,.rep-head,.rep-opt,.balrow,.subrow,.mini-item{
     transition:background-color var(--dur-fast) var(--ease-out);}
@@ -481,7 +490,7 @@
 
     /* ---------- Cabeçalho ---------- */
     body.wide .topbar{justify-content:center;padding-top:calc(var(--safe-top) + 16px);}
-    body.wide .cal-badge,body.wide .grid-icon{display:none;}
+    body.wide .cal-badge,body.wide .topbar-spacer{display:none;}
     body.wide .month-label{font-size:24px;}
 
     /* ---------- Saldos: tabela completa (todas as colunas) ---------- */
@@ -586,7 +595,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-27 · correções v2";
+const APP_VERSION="2026-08-27 · previsão de diário v3";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -649,7 +658,8 @@ const TYPES={
   saida:{label:"saídas",cls:"saida",glyph:"out"},
   diario:{label:"diários",cls:"diario",glyph:"D"},
   economia:{label:"economias",cls:"economia",glyph:"E"},
-  cartao:{label:"gastos com cartão",cls:"cartao",glyph:"C"}
+  cartao:{label:"gastos com cartão",cls:"cartao",glyph:"C"},
+  previsao:{label:"previsão de diário",cls:"previsao",glyph:"D"}
 };
 const TYPE_ORDER=["entrada","saida","diario","economia","cartao"];
 const SALDO_ORDER=["todas","entradas","saidas","diarios","economias","cartao"];
@@ -715,11 +725,12 @@ function normalizeState(st){
   if(!st.settings) st.settings={initial:0,forecast:0,theme:"light"};
   if(typeof st.settings.initial!=="number") st.settings.initial=0;
   if(typeof st.settings.forecast!=="number") st.settings.forecast=0;
+  if(typeof st.settings.diarioForecast!=="number") st.settings.diarioForecast=0;
   if(!st.done||typeof st.done!=="object") st.done={};
   // parcelas antigas foram gravadas como recur:true — reclassifica pelo sufixo "(k/n)"
   st.tx.forEach(t=>{
     if(!t.kind && t.series && t.recur && /\(\d+\/\d+\)\s*$/.test(t.desc||"")){
-      t.kind="parcela"; delete t.recur;
+      t.kind="parcela"; delete t.recur;   // legado: só o cartão numerava antes
     }
   });
   return st;
@@ -790,8 +801,34 @@ function defaultFatura(dateStr,cardName){
   return faturaKey(y,m);
 }
 function monthTx(y,m){ const k=faturaKey(y,m); return state.tx.filter(t=>txMonthKey(t)===k); }
+
+/* ---- Previsão de diário ----
+   Valor médio que você espera gastar por dia. NÃO é gravado: é calculado na hora,
+   como lançamento virtual. Por isso "zera sozinho" — assim que o dia vira passado,
+   ou assim que existe um diário real naquele dia, a previsão simplesmente some.
+   Vale só para hoje e dias futuros. */
+function forecastValue(){ return Math.max(0, +(state.settings&&state.settings.diarioForecast)||0); }
+function forecastTx(y,m){
+  const v=forecastValue(); if(!v) return [];
+  const now=new Date();
+  const ty=now.getFullYear(), tm=now.getMonth(), td=now.getDate();
+  if(y<ty||(y===ty&&m<tm)) return [];               // mês passado: nada previsto
+  const dim=daysInMonth(y,m);
+  const first=(y===ty&&m===tm)?td:1;                // no mês corrente começa hoje
+  const temDiario={};
+  state.tx.forEach(t=>{ if(t.type==="diario") temDiario[t.date]=true; });
+  const out=[];
+  for(let d=first;d<=dim;d++){
+    const ds=dstr(y,m,d);
+    if(temDiario[ds]) continue;                     // já houve gasto real: previsão dá lugar a ele
+    out.push({id:"fc-"+ds,type:"previsao",amount:v,desc:"previsão de diário",tag:"",date:ds,virtual:true});
+  }
+  return out;
+}
+/* lançamentos reais + previsões — usado onde o SALDO importa */
+function monthTxAll(y,m){ return monthTx(y,m).concat(forecastTx(y,m)); }
 function monthTotals(y,m){
-  const o={entrada:0,saida:0,diario:0,economia:0,cartao:0};
+  const o={entrada:0,saida:0,diario:0,economia:0,cartao:0,previsao:0};
   monthTx(y,m).forEach(t=>o[t.type]+=t.amount);
   return o;
 }
@@ -807,7 +844,7 @@ function dailyBalances(y,m){
   const arr=new Array(dim+1).fill(0);
   let b=openingBalance(y,m);
   const byDay={};
-  monthTx(y,m).forEach(t=>{ const d=txDay(t); (byDay[d]=byDay[d]||[]).push(t); });
+  monthTxAll(y,m).forEach(t=>{ const d=txDay(t); (byDay[d]=byDay[d]||[]).push(t); });
   for(let d=1;d<=dim;d++){
     (byDay[d]||[]).forEach(t=>b+=delta(t));
     arr[d]=b;
@@ -828,7 +865,7 @@ function renderHeader(){
       <div class="month-label">${label}</div>
       <button class="arrow" id="nextM">›</button>
     </div>
-    <div class="grid-icon"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="topbar-spacer"></div>
   </div>`;
   h.innerHTML=html;
   document.getElementById("prevM").onclick=()=>{ if(--view.m<0){view.m=11;view.y--;} render(); };
@@ -866,7 +903,7 @@ function renderSaldos(){
 
   // agrupa transações por dia
   const byDay={};
-  monthTx(view.y,view.m).forEach(t=>{ const d=txDay(t); (byDay[d]=byDay[d]||[]).push(t); });
+  monthTxAll(view.y,view.m).forEach(t=>{ const d=txDay(t); (byDay[d]=byDay[d]||[]).push(t); });
 
   let rows="";
   if(f==="todas"){
@@ -874,15 +911,18 @@ function renderSaldos(){
       const ds=dstr(view.y,view.m,d);
       const list=byDay[d]||[];
       const has=list.length>0;
-      const sums={}; TYPE_ORDER.forEach(tp=>sums[tp]=0);
+      const sums={previsao:0}; TYPE_ORDER.forEach(tp=>sums[tp]=0);
       list.forEach(t=>sums[t.type]+=t.amount);
       let inner="";
       TYPE_ORDER.forEach((tp,i)=>{
-        const v=sums[tp];const zero=v===0;
-        const tItem=list.find(x=>x.type===tp);
+        // a previsão ocupa o lugar do diário no dia em que não houve gasto real
+        const prev = tp==="diario" && sums.diario===0 && sums.previsao>0;
+        const slot = prev?"previsao":tp;
+        const v=sums[slot];const zero=v===0;
+        const tItem=list.find(x=>x.type===slot);
         inner+=`<div class="subrow ${i===0&&has?'has':''}" ${tItem?`data-tx="${tItem.id}"`:""}>
           <div class="lead" ${i===0?`data-done="${ds}"`:""}>${i===0?`<span class="n ${isToday(d)?'today':''}">${d}</span>`:""}</div>
-          <div class="amt ${zero?'zero':''}"><div class="amt-slide">${badge(tp,zero?'muted':'')}<span class="val">${brl(v)}</span></div></div>
+          <div class="amt ${zero?'zero':''}"><div class="amt-slide">${badge(slot,zero?'muted':'')}<span class="val">${brl(v)}</span></div></div>
           ${i===0?`<div class="bal" style="${balStyle(bals[d],maxAbs)}">${brl(bals[d])}</div>`:`<div class="bal" style="${balStyle(bals[d],maxAbs)};border:none"></div>`}
         </div>`;
       });
@@ -891,13 +931,14 @@ function renderSaldos(){
   } else {
     for(let d=1;d<=dim;d++){
       const ds=dstr(view.y,view.m,d);
-      const list=(byDay[d]||[]).filter(t=>t.type===fType);
+      const list=(byDay[d]||[]).filter(t=>t.type===fType||(fType==="diario"&&t.type==="previsao"));
       const v=list.reduce((s,t)=>s+t.amount,0);
       const zero=v===0;
       const tItem=list[0];
+      const bType=(tItem&&tItem.type==="previsao")?"previsao":fType;
       rows+=`<div class="balrow ${list.length?'has':''} ${doneMap()[ds]?'done':''}" data-day="${d}">
         <div class="day ${isToday(d)?'today':''}" data-done="${ds}">${d}</div>
-        <div class="amt ${zero?'zero':''}"><div class="amt-slide">${badge(fType,zero?'muted':'')}<span class="val">${brl(v)}</span></div></div>
+        <div class="amt ${zero?'zero':''}"><div class="amt-slide">${badge(bType,zero?'muted':'')}<span class="val">${brl(v)}</span></div></div>
         <div class="bal" style="${balStyle(bals[d],maxAbs)}">${brl(bals[d])}</div>
       </div>`;
     }
@@ -975,6 +1016,8 @@ function renderTotais(){
   const divDays=(now.getFullYear()===view.y&&now.getMonth()===view.m)?now.getDate():dim;
   const medio=t.diario/divDays;
   const pct=t.entrada>0?(t.economia/t.entrada*100):0;
+  const prevList=forecastTx(view.y,view.m);
+  const prevTot=prevList.reduce((a,x)=>a+x.amount,0);
 
   const perfCap=perf<0?"faltou dinheiro":perf>0?"sobrou dinheiro":"fechou no zero";
   const perfColor=perf<0?"var(--saida)":perf>0?"var(--green)":"var(--txt-2)";
@@ -998,6 +1041,10 @@ function renderTotais(){
       <div class="top"><div class="name">diário médio <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(medio)}</div><div class="cap">por dia</div></div></div>
       <div class="chips"><span class="badge sm diario">D</span><span style="color:var(--txt-2);font-weight:700">/ ${divDays} dias</span></div>
     </div>
+    <div class="calc" id="prevCard" style="cursor:pointer">
+      <div class="top"><div class="name">previsão de diário <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:var(--diario)">${brl(prevTot)}</div><div class="cap">${forecastValue()?`${brl(forecastValue())} × ${prevList.length} ${prevList.length===1?"dia":"dias"}`:"sem previsão"}</div></div></div>
+      <div class="chips"><span class="badge sm previsao">D</span><span style="color:var(--txt-2);font-weight:700">${forecastValue()?"projeção dos dias que faltam":"toque para definir"}</span></div>
+    </div>
     <div class="calc" id="cardsCard" style="cursor:pointer">
       <div class="top"><div class="name">cartões <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:var(--cartao)">${brl(t.cartao)}</div><div class="cap">${state.cards.length?"nas faturas do mês":"nenhum cartão"}</div></div></div>
       <div class="chips">${cardsChips()}</div>
@@ -1010,6 +1057,7 @@ function renderTotais(){
       ${movRow("diario",t.diario)}
       ${movRow("economia",t.economia)}
       ${movRow("cartao",t.cartao)}
+      ${movRow("previsao",prevTot)}
       <div class="rowitem" data-mov="todas"><span class="badge todas" style="background:var(--txt-2)">•••</span><span class="label">ver todas</span></div>
     </div>
     <div style="height:20px"></div>
@@ -1021,6 +1069,7 @@ function renderTotais(){
   const _cc=document.getElementById("custoCard"); if(_cc)_cc.onclick=openCusto;
   const _mc=document.getElementById("mediaCard"); if(_mc)_mc.onclick=openMedia;
   const _cd=document.getElementById("cardsCard"); if(_cd)_cd.onclick=openCardsView;
+  const _pv=document.getElementById("prevCard"); if(_pv)_pv.onclick=openForecastSheet;
 }
 function cardsChips(){
   if(!state.cards.length) return `<span style="color:var(--txt-3);font-weight:700">cadastre no menu ›</span>`;
@@ -1028,7 +1077,7 @@ function cardsChips(){
     + (state.cards.length>6?`<span style="color:var(--txt-3);font-weight:700">+${state.cards.length-6}</span>`:"");
 }
 function movRow(type,val){
-  const f=({entrada:"entradas",saida:"saidas",diario:"diarios",economia:"economias",cartao:"cartao"})[type];
+  const f=({entrada:"entradas",saida:"saidas",diario:"diarios",economia:"economias",cartao:"cartao",previsao:"diarios"})[type];
   return `<div class="rowitem" data-mov="${f}">${badge(type)}<span class="label">${TYPES[type].label}</span><span class="value">${brl(val)}</span></div>`;
 }
 
@@ -1588,6 +1637,7 @@ function renderMenu(){
     <div class="section-title">gerenciar</div>
     <div class="card">
       <div class="menu-row" id="mCards">${ic('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>')}Cartões<span class="chev">›</span></div>
+      <div class="menu-row" id="mPrev">${ic('<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>')}Previsão de diário<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">${forecastValue()?brl(forecastValue())+"/dia":"desligada"}</span><span class="chev" style="margin-left:8px">›</span></div>
       <div class="menu-row" id="mInitial">${ic('<path d="M12 3v18M8 7h6a3 3 0 010 6H9a3 3 0 000 6h7"/>')}Saldo inicial<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">${brl(state.settings.initial||0)}</span><span class="chev" style="margin-left:8px">›</span></div>
     </div>
     <div class="section-title">app</div>
@@ -1610,6 +1660,7 @@ function renderMenu(){
   }
   document.getElementById("mFull").onclick=toggleFullscreen;
   document.getElementById("mCards").onclick=openCardsSheet;
+  document.getElementById("mPrev").onclick=openForecastSheet;
   document.getElementById("mInitial").onclick=()=>promptValue("saldo inicial","initial","Quanto você tinha em conta antes do primeiro lançamento. Entra no saldo de todos os meses.");
   document.getElementById("mTheme").onclick=()=>{ state.settings.theme=dark?"light":"dark"; applyTheme(); persist(); render(); };
   document.getElementById("mExport").onclick=exportData;
@@ -1651,7 +1702,7 @@ function render(){
 }
 
 /* =================== Página do dia =================== */
-const TYPE_WORD={entrada:"entrada",saida:"saída",diario:"diário",economia:"economia",cartao:"cartão"};
+const TYPE_WORD={entrada:"entrada",saida:"saída",diario:"diário",economia:"economia",cartao:"cartão",previsao:"previsão"};
 function refresh(){ render(); if(dayOpen) renderDay(); if(movOpen) renderMov(); if(tagOpen) renderTagView(); }
 function openDay(dateStr){
   dayOpen=dateStr; view.dayFilter="todas"; renderDay();
@@ -1688,8 +1739,8 @@ function renderMov(){
   const label=`${MN[view.m]}/${String(view.y).slice(2)}`;
   const f=movFilter;
   const fType=({saidas:"saida",entradas:"entrada",diarios:"diario",economias:"economia",cartao:"cartao"})[f];
-  let list=monthTx(view.y,view.m);
-  if(f!=="todas") list=list.filter(t=>t.type===fType);
+  let list=monthTxAll(view.y,view.m);
+  if(f!=="todas") list=list.filter(t=>t.type===fType||(fType==="diario"&&t.type==="previsao"));
   list.sort((a,b)=> b.date.localeCompare(a.date) || (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)));
   const fLabel=FILTER_LABEL[f]||f;
   const rows=list.length ? list.map(t=>`
@@ -1787,8 +1838,9 @@ function renderDay(){
   const label=`${pad(D)}/${Mo}`;
   const f=view.dayFilter;
   const fType=({saidas:"saida",entradas:"entrada",diarios:"diario",economias:"economia",cartao:"cartao"})[f];
-  let list=state.tx.filter(t=>txMonthKey(t)===dayOpen.slice(0,7)&&txDay(t)===+dayOpen.slice(8,10));
-  if(f!=="todas") list=list.filter(t=>t.type===fType);
+  const dvY=+dayOpen.slice(0,4), dvM=+dayOpen.slice(5,7)-1;
+  let list=monthTxAll(dvY,dvM).filter(t=>txDay(t)===+dayOpen.slice(8,10));
+  if(f!=="todas") list=list.filter(t=>t.type===fType||(fType==="diario"&&t.type==="previsao"));
   list.sort((a,b)=>TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type));
   const fLabel=FILTER_LABEL[f]||f;
   const rows=list.length ? list.map(t=>`
@@ -2085,9 +2137,11 @@ function openAddSheet(txId,presetDate){
           const tot=bm+k, ny=by+Math.floor(tot/12), nm=((tot%12)+12)%12;
           dateStr=dstr(ny,nm,Math.min(bd,daysInMonth(ny,nm)));
         }
-        const desc = repMode==="parcelado" ? ((obj.desc||TYPE_WORD[obj.type])+` (${k+1}/${n})`) : obj.desc;
+        // toda série finita é numerada: "Imposto de renda (3/8)"
+        const desc = (obj.desc||TYPE_WORD[obj.type])+` (${k+1}/${n})`;
         const rec={id:uid(),...obj,amount:per[k],desc,date:dateStr,series};
-        if(repMode==="parcelado") rec.kind="parcela"; else rec.recur=true;
+        if(repMode==="parcelado"){ rec.kind="parcela"; }
+        else { rec.kind="recorrente"; rec.recur=true; }
         state.tx.push(rec);
       }
       toast(`${n} lançamentos adicionados`);
@@ -2105,6 +2159,7 @@ function openAddSheet(txId,presetDate){
 
 /* toque num lançamento -> ações */
 function openTxSheet(txId){
+  if(String(txId).indexOf("fc-")===0){ openForecastSheet(); return; }   // previsão é virtual
   const t=state.tx.find(x=>x.id===txId); if(!t)return;
   openSheet(`<div class="sheet-head"><h2>lançamento</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form" style="padding-bottom:24px">
@@ -2213,6 +2268,38 @@ function openCardEdit(cardId){
 }
 
 /* valores de configuração */
+/* Sheet da previsão de diário */
+function openForecastSheet(){
+  const dim=daysInMonth(view.y,view.m);
+  const cur=forecastValue();
+  openSheet(`<div class="sheet-head"><h2>previsão de diário</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
+    <div class="form">
+      <div class="amount-box"><span class="cur">R$</span> <input id="fcv" inputmode="numeric" maxlength="16" placeholder="0,00" value="${cur?amountMask(cur):""}"></div>
+      <div class="fc-month" id="fcMonth"></div>
+      <ul class="fc-help">
+        <li>é o quanto você espera gastar por dia, usado só como projeção.</li>
+        <li>vale a partir de hoje: dias já passados nunca recebem previsão.</li>
+        <li>no dia em que você lançar um diário de verdade, a previsão some e dá lugar ao valor real.</li>
+        <li>não é um lançamento: nada é gravado, e zerar é só apagar o valor.</li>
+      </ul>
+      <button class="save-btn" id="fcSave">salvar</button>
+      ${cur?`<button class="del-btn" id="fcOff">desligar previsão</button>`:""}
+    </div>`);
+  const el=document.getElementById("fcv");
+  const upd=()=>{ const v=parseAmount(el.value);
+    document.getElementById("fcMonth").textContent = v?`≈ ${brl(v*dim)} em ${MN_FULL[view.m]} (${dim} dias)`:"sem previsão"; };
+  el.addEventListener("input",()=>{ el.value=centsMask(el.value); upd(); });
+  upd();
+  document.getElementById("fcSave").onclick=()=>{
+    state.settings.diarioForecast=Math.max(0,parseAmount(el.value));
+    persist(); closeSheet(); refresh();
+    toast(state.settings.diarioForecast?"Previsão salva":"Previsão desligada");
+  };
+  const off=document.getElementById("fcOff");
+  if(off)off.onclick=()=>{ state.settings.diarioForecast=0; persist(); closeSheet(); refresh(); toast("Previsão desligada"); };
+  setTimeout(()=>el.focus(),300);
+}
+
 function promptValue(title,key,hint){
   const cur=state.settings[key]||0;
   let neg=cur<0;
@@ -2522,7 +2609,7 @@ function buildMonthTable(y,m,opts){
   const isToday=d=>today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
   const dmap=doneMap();
   const sums={};
-  monthTx(y,m).forEach(t=>{ const d=txDay(t); (sums[d]=sums[d]||{})[t.type]=(sums[d][t.type]||0)+t.amount; });
+  monthTxAll(y,m).forEach(t=>{ const d=txDay(t); (sums[d]=sums[d]||{})[t.type]=(sums[d][t.type]||0)+t.amount; });
   const tot=monthTotals(y,m);
 
   let head=`<tr class="mc-cols"><th class="tcol-day">Dia</th>`;
@@ -2533,8 +2620,11 @@ function buildMonthTable(y,m,opts){
   for(let d=1; d<=dim; d++){
     const ds=dstr(y,m,d), done=!!dmap[ds], row=sums[d]||{};
     let tds="";
-    cols.forEach(tp=>{ const v=row[tp]||0, zero=!v;
-      tds+=`<td class="tval ${zero?'zero':''}"><span class="cellwrap">${badge(tp,zero?'muted':'')}<span class="v">${brl(v)}</span></span></td>`; });
+    cols.forEach(tp=>{
+      const prev = tp==="diario" && !row.diario && row.previsao;
+      const slot = prev?"previsao":tp;
+      const v=row[slot]||0, zero=!v;
+      tds+=`<td class="tval ${zero?'zero':''}"><span class="cellwrap">${badge(slot,zero?'muted':'')}<span class="v">${brl(v)}</span></span></td>`; });
     body+=`<tr data-open="${ds}">
       <td class="tday ${done?'done':''} ${isToday(d)?'today':''}" data-done="${ds}"><span>${d}</span></td>
       ${tds}
