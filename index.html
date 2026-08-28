@@ -694,6 +694,11 @@
     body.wide #dayview,body.wide #movview,body.wide #tagview,body.wide #perfview,
     body.wide #ecoview,body.wide #custoview,body.wide #mediaview,body.wide #cardview,
     body.wide #searchview,body.wide #faturaview{left:236px;background:var(--bg);}
+    /* No PC não dá para arrastar os chips com o mouse: alarga o painel e deixa
+       que eles quebrem em várias linhas, em vez de rolar na horizontal. */
+    body.wide #searchview{background:rgba(0,0,0,.34);padding:40px 24px 24px;}
+    body.wide .sq-panel{max-width:760px;}
+    body.wide .sq-chips{flex-wrap:wrap;overflow-x:visible;padding:0 16px 10px;}
     body.wide .day-screen,body.wide .perf-screen,body.wide .eco-screen,body.wide .card-screen,
     body.wide .search-screen{
       max-width:820px;margin:24px auto 48px;min-height:0;background:var(--surface);
@@ -739,7 +744,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-27 · busca flutuante v9";
+const APP_VERSION="2026-08-27 · correções fatura e busca v10";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -1918,7 +1923,21 @@ function render(){
 
 /* =================== Página do dia =================== */
 const TYPE_WORD={entrada:"entrada",saida:"saída",diario:"diário",economia:"economia",cartao:"cartão",previsao:"previsão"};
-function refresh(){ render(); if(dayOpen) renderDay(); if(movOpen) renderMov(); if(tagOpen) renderTagView(); }
+/* Redesenha tudo o que está visível. Faltavam as telas sobrepostas: marcar uma
+   fatura como paga não atualizava a tela de cartões que estava por baixo. */
+function refresh(){
+  render();
+  if(dayOpen) renderDay();
+  if(movOpen) renderMov();
+  if(tagOpen) renderTagView();
+  if(cardviewOpen) renderCardsView();
+  if(faturaOpen) renderFatura();
+  if(searchOpen) renderSearch();
+  if(perfOpen) renderPerf();
+  if(ecoOpen) renderEco();
+  if(custoOpen) renderCusto();
+  if(mediaOpen) renderMedia();
+}
 function openDay(dateStr){
   dayOpen=dateStr; view.dayFilter="todas"; renderDay();
   navPush(()=>{ dayOpen=null; const g=document.getElementById("dayview"); g.classList.remove("show");
@@ -2097,7 +2116,7 @@ function fecharAlerta(){
 }
 
 /* =================== Fatura =================== */
-let faturaOpen=false, faturaCard=null, faturaKeyCur=null;
+let faturaOpen=false, faturaCard=null, faturaKeyCur=null, faturaBusy=false;
 
 /* Itens de uma fatura: todos os gastos daquele cartão com aquela chave de fatura. */
 function faturaItems(cardName,key){
@@ -2194,16 +2213,26 @@ function renderFatura(){
     <div class="scroll">${rows}</div>
   </div>`;
 
-  document.getElementById("ftBack").onclick=closeFatura;
-  document.getElementById("ftPrev").onclick=()=>faturaShift(-1);
-  document.getElementById("ftNext").onclick=()=>faturaShift(1);
+  // onTap: dispara já no pointerup. Com onclick puro o iOS engolia o toque sempre
+  // que a ação recriava o próprio botão — que é o caso aqui (renderFatura).
+  onTap(document.getElementById("ftBack"), closeFatura);
+  onTap(document.getElementById("ftPrev"), ()=>faturaShift(-1));
+  onTap(document.getElementById("ftNext"), ()=>faturaShift(1));
   const pay=document.getElementById("ftPay");
-  if(pay)pay.onclick=()=>{
-    const alvo = st!=="paga";
-    itens.forEach(t=>setPago(t,alvo));
-    persist(); refresh(); renderFatura();
-    toast(alvo?"Fatura marcada como paga":"Pagamento desmarcado");
-  };
+  if(pay)onTap(pay, ()=>{
+    if(faturaBusy) return;               // ignora reentrada durante o redesenho
+    faturaBusy=true;
+    try{
+      const alvo = st!=="paga";
+      itens.forEach(t=>setPago(t,alvo));
+      persist(); refresh();              // refresh já redesenha a fatura
+      toast(alvo?"Fatura marcada como paga":"Pagamento desmarcado");
+    } finally {
+      // finally garante que a trava nunca fique presa: se soltasse por timeout e
+      // algo falhasse antes, o botão pararia de responder de vez.
+      faturaBusy=false;
+    }
+  });
   g.querySelectorAll("[data-tx]").forEach(el=>el.onclick=()=>openTxSheet(el.dataset.tx));
   const _nf=g.querySelector(".scroll"); if(_nf) _nf.scrollTop=_fy;
   requestAnimationFrame(()=>g.classList.add("show"));
@@ -2305,8 +2334,8 @@ function renderSearch(){
     const n=document.getElementById("sqInput"); n.focus(); try{ n.setSelectionRange(p,p); }catch(e){} };
   const cl=document.getElementById("sqClear");
   if(cl)cl.onclick=()=>{ searchQ=""; renderSearch(); document.getElementById("sqInput").focus(); };
-  g.querySelectorAll("[data-st]").forEach(el=>el.onclick=()=>{ searchType=el.dataset.st; renderSearch(); });
-  g.querySelectorAll("[data-ss]").forEach(el=>el.onclick=()=>{ searchStatus=el.dataset.ss; renderSearch(); });
+  g.querySelectorAll("[data-st]").forEach(el=>onTap(el, ()=>{ searchType=el.dataset.st; renderSearch(); }));
+  g.querySelectorAll("[data-ss]").forEach(el=>onTap(el, ()=>{ searchStatus=el.dataset.ss; renderSearch(); }));
   g.querySelectorAll("[data-tx]").forEach(el=>el.onclick=()=>openTxSheet(el.dataset.tx));
   const _ns=g.querySelector(".sq-results"); if(_ns) _ns.scrollTop=_sy;
   requestAnimationFrame(()=>g.classList.add("show"));
