@@ -325,6 +325,33 @@
   .ft-tagmini.fechada{color:var(--saida);}
   .ft-tagmini.paga{color:var(--green);}
   .perf-row.ft-link .pv{margin-left:auto;}
+
+  /* ---------- Aviso de pendências ---------- */
+  .al-card{padding:0;overflow:hidden;text-align:left;max-width:390px;}
+  .al-head{display:flex;align-items:center;gap:13px;padding:20px 20px 16px;}
+  .al-ico{width:38px;height:38px;flex:0 0 auto;border-radius:50%;background:var(--saida);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;}
+  .al-tit{font-size:21px;font-weight:800;letter-spacing:-.3px;color:var(--txt);}
+  .al-sub{font-size:14px;font-weight:700;color:var(--txt-2);margin-top:2px;}
+  .al-list{max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .al-sec{padding:11px 20px 7px;font-size:12px;font-weight:800;color:var(--txt-3);
+    letter-spacing:.4px;text-transform:lowercase;background:var(--bg);}
+  .al-sec.late{color:var(--saida);}
+  .al-row{display:flex;align-items:center;gap:11px;padding:12px 20px;background:var(--surface);
+    border-top:1px solid var(--line);}
+  .al-row:first-of-type{border-top:none;}
+  .al-info{flex:1;min-width:0;}
+  .al-nm{font-size:16px;font-weight:700;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .al-dt{font-size:13px;font-weight:600;color:var(--txt-2);margin-top:2px;}
+  .al-vl{font-size:16px;font-weight:800;color:var(--txt);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .al-pg{width:32px;height:32px;flex:0 0 auto;border-radius:50%;border:2px solid var(--green);
+    background:var(--surface);color:var(--green);font-size:16px;font-weight:900;
+    transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
+  .al-pg:active{transform:scale(.9);background:var(--green);color:#fff;}
+  .al-foot{padding:16px 20px 18px;}
+  .al-foot .modal-opt{margin-bottom:10px;}
+  .al-foot .modal-cancel{margin:0;}
   .amount-box input{border:none;background:none;font-size:48px;font-weight:800;text-align:center;width:100%;color:var(--txt);outline:none;letter-spacing:-1px;}
   .field{padding:14px 0;border-top:1px solid var(--line);}
   .field label{display:block;font-size:14px;color:var(--txt-2);font-weight:700;margin-bottom:7px;}
@@ -672,7 +699,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-27 · busca, pago e fatura v5";
+const APP_VERSION="2026-08-27 · aviso de pendências v6";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -921,19 +948,20 @@ function effDate(t){
   return `${k}-${pad(txDay(t))}`;
 }
 function hojeStr(){ const n=new Date(); return dstr(n.getFullYear(),n.getMonth(),n.getDate()); }
-/* Sem marcação explícita, o passado conta como realizado e o futuro como previsto.
+/* Sem marcação explícita, o passado conta como realizado e hoje/futuro como previsto.
+   Hoje é "previsto": uma conta que vence hoje ainda não foi paga quando você abre o app.
    t.pago===true força "pago"; t.pago===false força "pendente" (conta atrasada). */
 function isPago(t){
   if(t.type==="previsao") return false;
   if(t.pago===true) return true;
   if(t.pago===false) return false;
-  return effDate(t)<=hojeStr();
+  return effDate(t)<hojeStr();
 }
 /* pendente e já vencido */
 function isAtrasado(t){ return !isPago(t) && t.type!=="previsao" && effDate(t)<hojeStr(); }
 function setPago(t,v){
   // grava só quando difere do que a data já indicaria, para não encher o documento
-  const auto = effDate(t)<=hojeStr();
+  const auto = effDate(t)<hojeStr();
   if(v===auto) delete t.pago; else t.pago=v;
 }
 function monthTotals(y,m){
@@ -1902,6 +1930,92 @@ function renderMov(){
   requestAnimationFrame(()=>g.classList.add("show"));
 }
 
+/* =================== Aviso de pendências na abertura =================== */
+/* Só contas: saídas e faturas de cartão. Diários e economias ficam de fora
+   porque não são compromissos a pagar. */
+let alertaMostrado=false;
+const ALERTA_TIPOS={saida:1,cartao:1};
+
+function pendenciasHoje(){
+  const h=hojeStr();
+  return state.tx.filter(t=>ALERTA_TIPOS[t.type] && effDate(t)===h && !isPago(t))
+    .sort((a,b)=>b.amount-a.amount);
+}
+function pendenciasAtrasadas(){
+  return state.tx.filter(t=>ALERTA_TIPOS[t.type] && isAtrasado(t))
+    .sort((a,b)=>effDate(a).localeCompare(effDate(b)));
+}
+
+/* Chamado uma vez por carregamento do app, depois que os dados chegaram. */
+function checarPendencias(){
+  if(alertaMostrado) return;
+  if(!pendenciasHoje().length && !pendenciasAtrasadas().length) return;
+  alertaMostrado=true;
+  renderAlertaPendencias();
+}
+
+function renderAlertaPendencias(){
+  const hoje=pendenciasHoje(), atr=pendenciasAtrasadas();
+  if(!hoje.length && !atr.length){ fecharAlerta(); return; }
+  const m=document.getElementById("modal");
+  const tHoje=hoje.reduce((a,t)=>a+t.amount,0);
+  const tAtr=atr.reduce((a,t)=>a+t.amount,0);
+
+  const linha=t=>{
+    const d=effDate(t);
+    return `<div class="al-row" data-pg="${t.id}">
+      ${badge(t.type,"sm")}
+      <div class="al-info">
+        <div class="al-nm">${esc(t.desc||TYPE_WORD[t.type])}</div>
+        <div class="al-dt">${d.slice(8,10)}/${d.slice(5,7)}${t.card?" · "+esc(t.card):""}${t.tag?" · "+esc(t.tag):""}</div>
+      </div>
+      <div class="al-vl">${brl(t.amount)}</div>
+      <button class="al-pg" title="marcar como pago">✓</button>
+    </div>`;
+  };
+
+  m.innerHTML=`<div class="modal-card al-card">
+    <div class="al-head">
+      <span class="al-ico">!</span>
+      <div>
+        <div class="al-tit">contas a pagar</div>
+        <div class="al-sub">${atr.length?`${atr.length} atrasada${atr.length>1?"s":""}`:""}${atr.length&&hoje.length?" · ":""}${hoje.length?`${hoje.length} vence${hoje.length>1?"m":""} hoje`:""}</div>
+      </div>
+    </div>
+    <div class="al-list">
+      ${atr.length?`<div class="al-sec late">atrasadas · ${brl(tAtr)}</div>${atr.map(linha).join("")}`:""}
+      ${hoje.length?`<div class="al-sec">vencem hoje · ${brl(tHoje)}</div>${hoje.map(linha).join("")}`:""}
+    </div>
+    <div class="al-foot">
+      <button class="modal-opt" id="alTudo">marcar todas como pagas</button>
+      <button class="modal-cancel" id="alFechar">agora não</button>
+    </div>
+  </div>`;
+  requestAnimationFrame(()=>m.classList.add("open"));
+
+  m.querySelectorAll("[data-pg]").forEach(el=>{
+    el.querySelector(".al-pg").onclick=e=>{
+      e.stopPropagation();
+      const t=state.tx.find(x=>x.id===el.dataset.pg);
+      if(t){ setPago(t,true); persist(); refresh(); }
+      renderAlertaPendencias();          // some da lista; fecha sozinho se esvaziar
+    };
+    el.onclick=()=>{ const id=el.dataset.pg; fecharAlerta(); openTxSheet(id); };
+  });
+  document.getElementById("alTudo").onclick=()=>{
+    [...atr,...hoje].forEach(t=>setPago(t,true));
+    persist(); refresh(); fecharAlerta(); toast("Contas marcadas como pagas");
+  };
+  document.getElementById("alFechar").onclick=fecharAlerta;
+  m.onclick=e=>{ if(e.target===m) fecharAlerta(); };
+}
+
+function fecharAlerta(){
+  const m=document.getElementById("modal");
+  m.classList.remove("open"); m.onclick=null;
+  setTimeout(()=>{ if(!m.classList.contains("open")) m.innerHTML=""; },var_dur());
+}
+
 /* =================== Fatura =================== */
 let faturaOpen=false, faturaCard=null, faturaKeyCur=null;
 
@@ -2752,6 +2866,7 @@ function subscribeCloud(){
       lastServerSync=new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
       hideLoading();
       if(view.tab==="menu") render();
+      setTimeout(checarPendencias,650);   // só depois que os dados reais chegaram
     }else{
       // Veio do cache (provavelmente offline). Só serve para PREENCHER a primeira
       // carga, enquanto o servidor não respondeu. Depois que o servidor falou
@@ -3109,7 +3224,7 @@ else if(MQ_WIDE.addListener) MQ_WIDE.addListener(()=>render());
 /* =================== Boot =================== */
 applyTheme();
 if(FB_ON){ render(); setupAuthGate(); }
-else{ Store.save(state); render(); }
+else{ Store.save(state); render(); setTimeout(checarPendencias,400); }
 </script>
 </body>
 </html>
