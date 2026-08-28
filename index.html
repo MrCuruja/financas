@@ -85,7 +85,10 @@
   .cal-badge::after{content:"";position:absolute;top:2px;left:9px;width:4px;height:6px;border-radius:2px;
     background:var(--txt);box-shadow:18px 0 0 var(--txt);}
   .month-nav{display:flex;align-items:center;gap:14px;}
-  .month-nav .arrow{font-size:26px;color:var(--txt-3);width:30px;height:30px;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .month-nav .arrow{color:var(--txt-2);width:32px;height:32px;line-height:1;display:flex;align-items:center;justify-content:center;}
+  /* traço das setas: 2.6 contra o ~1px dos glifos de texto */
+  .arrow svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;
+    stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;}
   .month-label{font-size:27px;font-weight:800;letter-spacing:-.5px;min-width:118px;text-align:center;}
   /* espaçador: mantém o mês centralizado no lugar do antigo botão do canto direito */
   .topbar-spacer{width:44px;height:44px;flex:0 0 auto;}
@@ -353,7 +356,8 @@
   .tagview-head .tvtot{margin-left:auto;font-size:22px;font-weight:800;white-space:nowrap;}
   .day-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--surface);}
   .day-screen .topbar{border-bottom:1px solid var(--line);}
-  .arrow.dv-plain{font-size:28px;color:var(--txt);width:34px;}
+  .arrow.dv-plain{color:var(--txt);width:34px;}
+  .arrow.dv-plain svg{width:25px;height:25px;stroke-width:2.7;}
   #dvBack{font-size:26px;}
   .txrow{display:flex;align-items:center;gap:14px;padding:20px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
   .txrow .txinfo{flex:1;min-width:0;}
@@ -373,7 +377,8 @@
   .perf-year{display:flex;align-items:center;justify-content:center;gap:6px;margin:16px 18px 2px;
     border:1px solid var(--line-strong);border-radius:30px;padding:8px 6px;background:var(--surface);}
   .perf-year .yr{font-size:20px;font-weight:800;letter-spacing:-.3px;min-width:96px;text-align:center;}
-  .perf-year .arrow{font-size:24px;color:var(--txt-2);width:44px;height:36px;display:flex;align-items:center;justify-content:center;}
+  .perf-year .arrow{color:var(--txt-2);width:44px;height:36px;display:flex;align-items:center;justify-content:center;}
+  .perf-year .arrow svg{width:22px;height:22px;}
   .perf-help{border-bottom:1px solid var(--line);}
   .perf-help .hd{display:flex;align-items:center;justify-content:space-between;gap:10px;
     padding:18px 20px;color:var(--txt-2);font-size:17px;font-weight:700;}
@@ -530,12 +535,14 @@
     .saldos-ctrl{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 20px 13px;background:var(--surface);border-bottom:1px solid var(--line);}
     .yearnav{display:flex;align-items:center;gap:16px;}
     .yearnav .yr{font-size:23px;font-weight:800;letter-spacing:-.5px;min-width:92px;text-align:center;}
-    .yearnav .arrow{font-size:27px;color:var(--txt-2);width:40px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;touch-action:manipulation;
+    .yearnav .arrow svg{width:24px;height:24px;}
+    .yearnav .arrow{color:var(--txt-2);width:40px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;touch-action:manipulation;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
     @media (hover:hover) and (pointer:fine){ .yearnav .arrow:hover{background:var(--bg);color:var(--txt);} }
     .monthnav{display:flex;align-items:center;gap:12px;}
     .monthnav .mo{font-size:16px;font-weight:700;color:var(--txt-2);min-width:118px;text-align:center;letter-spacing:-.2px;}
-    .monthnav .arrow{font-size:22px;color:var(--txt-3);width:32px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;touch-action:manipulation;
+    .monthnav .arrow svg{width:20px;height:20px;stroke-width:2.8;}
+    .monthnav .arrow{color:var(--txt-2);width:32px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;touch-action:manipulation;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
     @media (hover:hover) and (pointer:fine){ .monthnav .arrow:hover{background:var(--bg);color:var(--txt);} }
     body.wide .saldos-scroll{touch-action:pan-y;}
@@ -563,6 +570,11 @@
       border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow);}
     body.wide .day-screen .topbar,body.wide .perf-screen .topbar,body.wide .eco-screen .topbar,body.wide .card-screen .topbar{
       border-bottom:1px solid var(--line);}
+
+    /* O card tem 820px, mas o SVG é 372×178: esticado, o gráfico ficava com ~380px
+       de altura. Limita a largura do desenho (a faixa e a borda seguem inteiras). */
+    body.wide .perf-chart{padding:20px 22px 14px;}
+    body.wide .perf-chart svg{max-width:480px;margin:0 auto;}
   }
 </style>
 </head>
@@ -595,7 +607,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-27 · previsão de diário v3";
+const APP_VERSION="2026-08-27 · ajustes visuais v4";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -632,6 +644,12 @@ if(FB_ON){
 const MN=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 const MN_FULL=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+/* Setas de navegação em SVG: o traço é controlado por CSS (stroke-width),
+   então ficam bem mais grossas e legíveis que os glifos ‹ › ← . */
+const navSVG=d=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const IC_PREV=navSVG("M15 4l-8 8 8 8");
+const IC_NEXT=navSVG("M9 4l8 8-8 8");
+const IC_BACK=navSVG("M20 12H4M11 5l-7 7 7 7");
 /* escapa texto do usuário antes de interpolar em HTML (nomes de tag/cartão, descrições) */
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const brl=n=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n||0);
@@ -861,9 +879,9 @@ function renderHeader(){
   let html=`<div class="topbar">
     <div class="cal-badge" id="todayBtn">${today.getMonth()===view.m&&today.getFullYear()===view.y?dnum:'<span style="font-size:13px;font-weight:800">hoje</span>'}</div>
     <div class="month-nav">
-      <button class="arrow" id="prevM">‹</button>
+      <button class="arrow" id="prevM">${IC_PREV}</button>
       <div class="month-label">${label}</div>
-      <button class="arrow" id="nextM">›</button>
+      <button class="arrow" id="nextM">${IC_NEXT}</button>
     </div>
     <div class="topbar-spacer"></div>
   </div>`;
@@ -1148,14 +1166,14 @@ function renderPerf(){
 
   g.innerHTML=`<div class="perf-screen">
     <div class="topbar">
-      <button class="arrow dv-plain" id="pfBack">←</button>
+      <button class="arrow dv-plain" id="pfBack">${IC_BACK}</button>
       <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">performance</div>
       <div style="width:34px"></div>
     </div>
     <div class="perf-year">
-      <button class="arrow" id="pfPrev">‹</button>
+      <button class="arrow" id="pfPrev">${IC_PREV}</button>
       <div class="yr">${perfYear}</div>
-      <button class="arrow" id="pfNext">›</button>
+      <button class="arrow" id="pfNext">${IC_NEXT}</button>
     </div>
     <div class="perf-help${perfHelp?' open':''}" id="pfHelp">
       <div class="hd" id="pfHelpHd">como funciona a performance?<span class="cx">▾</span></div>
@@ -1258,14 +1276,14 @@ function renderEco(){
 
   g.innerHTML=`<div class="eco-screen">
     <div class="topbar">
-      <button class="arrow dv-plain" id="ecBack">←</button>
+      <button class="arrow dv-plain" id="ecBack">${IC_BACK}</button>
       <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">economizado</div>
       <div style="width:34px"></div>
     </div>
     <div class="perf-year">
-      <button class="arrow" id="ecPrev">‹</button>
+      <button class="arrow" id="ecPrev">${IC_PREV}</button>
       <div class="yr">${ecoYear}</div>
-      <button class="arrow" id="ecNext">›</button>
+      <button class="arrow" id="ecNext">${IC_NEXT}</button>
     </div>
     <div class="perf-help${ecoHelp?' open':''}" id="ecHelp">
       <div class="hd" id="ecHelpHd">como funciona o economizado?<span class="cx">▾</span></div>
@@ -1344,14 +1362,14 @@ function renderCusto(){
 
   g.innerHTML=`<div class="perf-screen">
     <div class="topbar">
-      <button class="arrow dv-plain" id="cvBack">←</button>
+      <button class="arrow dv-plain" id="cvBack">${IC_BACK}</button>
       <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">custo de vida</div>
       <div style="width:34px"></div>
     </div>
     <div class="perf-year">
-      <button class="arrow" id="cvPrev">‹</button>
+      <button class="arrow" id="cvPrev">${IC_PREV}</button>
       <div class="yr">${custoYear}</div>
-      <button class="arrow" id="cvNext">›</button>
+      <button class="arrow" id="cvNext">${IC_NEXT}</button>
     </div>
     <div class="perf-help${custoHelp?' open':''}" id="cvHelp">
       <div class="hd" id="cvHelpHd">como funciona o custo de vida?<span class="cx">▾</span></div>
@@ -1431,14 +1449,14 @@ function renderMedia(){
 
   g.innerHTML=`<div class="perf-screen">
     <div class="topbar">
-      <button class="arrow dv-plain" id="mdBack">←</button>
+      <button class="arrow dv-plain" id="mdBack">${IC_BACK}</button>
       <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">diário médio</div>
       <div style="width:34px"></div>
     </div>
     <div class="perf-year">
-      <button class="arrow" id="mdPrev">‹</button>
+      <button class="arrow" id="mdPrev">${IC_PREV}</button>
       <div class="yr">${mediaYear}</div>
-      <button class="arrow" id="mdNext">›</button>
+      <button class="arrow" id="mdNext">${IC_NEXT}</button>
     </div>
     <div class="perf-help${mediaHelp?' open':''}" id="mdHelp">
       <div class="hd" id="mdHelpHd">como funciona o diário médio?<span class="cx">▾</span></div>
@@ -1535,14 +1553,14 @@ function renderCardsView(){
 
   g.innerHTML=`<div class="card-screen perf-screen">
     <div class="topbar">
-      <button class="arrow dv-plain" id="cvwBack">←</button>
+      <button class="arrow dv-plain" id="cvwBack">${IC_BACK}</button>
       <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">cartões</div>
       <div style="width:34px"></div>
     </div>
     <div class="perf-year">
-      <button class="arrow" id="cvwPrev">‹</button>
+      <button class="arrow" id="cvwPrev">${IC_PREV}</button>
       <div class="yr">${cardYear}</div>
-      <button class="arrow" id="cvwNext">›</button>
+      <button class="arrow" id="cvwNext">${IC_NEXT}</button>
     </div>
     <div class="perf-help${cardHelp?' open':''}" id="cvwHelp">
       <div class="hd" id="cvwHelpHd">como funcionam os cartões?<span class="cx">▾</span></div>
@@ -1752,11 +1770,11 @@ function renderMov(){
     : `<div class="empty">Nenhuma movimentação em <b>${fLabel}</b> neste mês.<br>Toque em + para adicionar.</div>`;
   g.innerHTML=`<div class="day-screen">
     <div class="topbar">
-      <button class="arrow dv-plain" id="mvBack">←</button>
+      <button class="arrow dv-plain" id="mvBack">${IC_BACK}</button>
       <div class="month-nav">
-        <button class="arrow" id="mvPrev">‹</button>
+        <button class="arrow" id="mvPrev">${IC_PREV}</button>
         <div class="month-label" style="font-size:26px;min-width:96px">${label}</div>
-        <button class="arrow" id="mvNext">›</button>
+        <button class="arrow" id="mvNext">${IC_NEXT}</button>
       </div>
       <button class="arrow dv-plain" id="mvAdd">+</button>
     </div>
@@ -1805,11 +1823,11 @@ function renderTagView(){
     : `<div class="empty">Nenhum lançamento com <b>${esc(tg.name)}</b> em ${label}.<br>Toque em ✎ para editar a tag.</div>`;
   g.innerHTML=`<div class="day-screen">
     <div class="topbar">
-      <button class="arrow dv-plain" id="tvBack">←</button>
+      <button class="arrow dv-plain" id="tvBack">${IC_BACK}</button>
       <div class="month-nav">
-        <button class="arrow" id="tvPrev">‹</button>
+        <button class="arrow" id="tvPrev">${IC_PREV}</button>
         <div class="month-label" style="font-size:26px;min-width:96px">${label}</div>
-        <button class="arrow" id="tvNext">›</button>
+        <button class="arrow" id="tvNext">${IC_NEXT}</button>
       </div>
       <button class="arrow dv-plain" id="tvEdit" title="editar tag"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
     </div>
@@ -1852,11 +1870,11 @@ function renderDay(){
     : `<div class="empty">Nenhuma movimentação neste dia${f!=="todas"?` em <b>${fLabel}</b>`:""}.<br>Toque em + para adicionar.</div>`;
   g.innerHTML=`<div class="day-screen">
     <div class="topbar">
-      <button class="arrow dv-plain" id="dvBack">←</button>
+      <button class="arrow dv-plain" id="dvBack">${IC_BACK}</button>
       <div class="month-nav">
-        <button class="arrow" id="dvPrev">‹</button>
+        <button class="arrow" id="dvPrev">${IC_PREV}</button>
         <div class="month-label" style="font-size:26px;min-width:96px">${label}</div>
-        <button class="arrow" id="dvNext">›</button>
+        <button class="arrow" id="dvNext">${IC_NEXT}</button>
       </div>
       <button class="arrow dv-plain" id="dvAdd">+</button>
     </div>
@@ -2663,14 +2681,14 @@ function saldosCtrlHTML(){
   const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
   return `<div class="saldos-ctrl">
     <div class="yearnav">
-      <button class="arrow" data-yr="-1" aria-label="Ano anterior">‹</button>
+      <button class="arrow" data-yr="-1" aria-label="Ano anterior">${IC_PREV}</button>
       <span class="yr">${view.y}</span>
-      <button class="arrow" data-yr="1" aria-label="Próximo ano">›</button>
+      <button class="arrow" data-yr="1" aria-label="Próximo ano">${IC_NEXT}</button>
     </div>
     <div class="monthnav">
-      <button class="arrow" data-mo="-1" aria-label="Mês anterior">‹</button>
+      <button class="arrow" data-mo="-1" aria-label="Mês anterior">${IC_PREV}</button>
       <span class="mo">${cap(MN_FULL[view.m])}</span>
-      <button class="arrow" data-mo="1" aria-label="Próximo mês">›</button>
+      <button class="arrow" data-mo="1" aria-label="Próximo mês">${IC_NEXT}</button>
     </div>
   </div>`;
 }
