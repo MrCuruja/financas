@@ -699,7 +699,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-27 · aviso de pendências v6";
+const APP_VERSION="2026-08-27 · corte de pagamentos v7";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -827,6 +827,7 @@ let state = FB_ON ? {tx:[],cards:[],tags:[],settings:{initial:0,forecast:0,theme
 
 /* Normaliza o estado e migra dados de versões antigas.
    Idempotente: roda em qualquer carga (local, importação, nuvem). */
+let cutoffNovo=false;
 function normalizeState(st){
   if(!st||typeof st!=="object") return st;
   if(!Array.isArray(st.tx)) st.tx=[];
@@ -836,6 +837,14 @@ function normalizeState(st){
   if(typeof st.settings.initial!=="number") st.settings.initial=0;
   if(typeof st.settings.forecast!=="number") st.settings.forecast=0;
   if(typeof st.settings.diarioForecast!=="number") st.settings.diarioForecast=0;
+  // Corte do controle de pagamentos: fixado no dia em que o app rodou pela primeira
+  // vez com esta versão. Fica gravado — não pode ser recalculado a cada carga, senão
+  // as pendências de ontem virariam "pagas" sozinhas.
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(st.settings.pagoCutoff||"")){
+    const n=new Date();
+    st.settings.pagoCutoff=`${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;
+    cutoffNovo=true;                    // precisa ser gravado, senão recalcula amanhã
+  }
   if(!st.done||typeof st.done!=="object") st.done={};
   // parcelas antigas foram gravadas como recur:true — reclassifica pelo sufixo "(k/n)"
   st.tx.forEach(t=>{
@@ -948,20 +957,23 @@ function effDate(t){
   return `${k}-${pad(txDay(t))}`;
 }
 function hojeStr(){ const n=new Date(); return dstr(n.getFullYear(),n.getMonth(),n.getDate()); }
-/* Sem marcação explícita, o passado conta como realizado e hoje/futuro como previsto.
-   Hoje é "previsto": uma conta que vence hoje ainda não foi paga quando você abre o app.
-   t.pago===true força "pago"; t.pago===false força "pendente" (conta atrasada). */
+/* Data de corte do controle de pagamentos.
+   ANTES dela: histórico, tudo conta como pago (não faz sentido cobrar o passado).
+   DELA EM DIANTE: nada conta como pago sem marcação — então uma conta que passou
+   sem ser marcada continua pendente e vira atrasada, em vez de virar paga sozinha. */
+function pagoCutoff(){ return (state.settings&&state.settings.pagoCutoff)||hojeStr(); }
+/* t.pago===true força "pago"; t.pago===false força "pendente". */
 function isPago(t){
   if(t.type==="previsao") return false;
   if(t.pago===true) return true;
   if(t.pago===false) return false;
-  return effDate(t)<hojeStr();
+  return effDate(t)<pagoCutoff();
 }
 /* pendente e já vencido */
 function isAtrasado(t){ return !isPago(t) && t.type!=="previsao" && effDate(t)<hojeStr(); }
 function setPago(t,v){
-  // grava só quando difere do que a data já indicaria, para não encher o documento
-  const auto = effDate(t)<hojeStr();
+  // grava só quando difere do que o corte já indicaria, para não encher o documento
+  const auto = effDate(t)<pagoCutoff();
   if(v===auto) delete t.pago; else t.pago=v;
 }
 function monthTotals(y,m){
@@ -1793,6 +1805,7 @@ function renderMenu(){
     <div class="card">
       <div class="menu-row" id="mBusca">${ic('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/>')}Buscar lançamentos<span class="chev">›</span></div>
       <div class="menu-row" id="mCards">${ic('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>')}Cartões<span class="chev">›</span></div>
+      <div class="menu-row" id="mCutoff">${ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}Controle de pagamentos<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">desde ${pagoCutoff().slice(8,10)}/${pagoCutoff().slice(5,7)}</span><span class="chev" style="margin-left:8px">›</span></div>
       <div class="menu-row" id="mPrev">${ic('<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>')}Previsão de diário<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">${forecastValue()?brl(forecastValue())+"/dia":"desligada"}</span><span class="chev" style="margin-left:8px">›</span></div>
       <div class="menu-row" id="mInitial">${ic('<path d="M12 3v18M8 7h6a3 3 0 010 6H9a3 3 0 000 6h7"/>')}Saldo inicial<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">${brl(state.settings.initial||0)}</span><span class="chev" style="margin-left:8px">›</span></div>
     </div>
@@ -1817,6 +1830,7 @@ function renderMenu(){
   document.getElementById("mFull").onclick=toggleFullscreen;
   document.getElementById("mBusca").onclick=()=>{ searchQ=""; searchType="todas"; searchStatus="todos"; openSearch(); };
   document.getElementById("mCards").onclick=openCardsSheet;
+  document.getElementById("mCutoff").onclick=openCutoffSheet;
   document.getElementById("mPrev").onclick=openForecastSheet;
   document.getElementById("mInitial").onclick=()=>promptValue("saldo inicial","initial","Quanto você tinha em conta antes do primeiro lançamento. Entra no saldo de todos os meses.");
   document.getElementById("mTheme").onclick=()=>{ state.settings.theme=dark?"light":"dark"; applyTheme(); persist(); render(); };
@@ -2749,6 +2763,27 @@ function openCardEdit(cardId){
 
 /* valores de configuração */
 /* Sheet da previsão de diário */
+function openCutoffSheet(){
+  const cur=pagoCutoff();
+  openSheet(`<div class="sheet-head"><h2>controle de pagamentos</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
+    <div class="form">
+      <div class="field" style="border:none"><label>vale a partir de</label>
+        <input type="date" id="cutDate" value="${cur}"></div>
+      <ul class="fc-help">
+        <li>a partir desta data, nenhuma conta conta como paga até você marcar.</li>
+        <li>antes dela, tudo é tratado como histórico já pago — seus lançamentos antigos não viram cobrança.</li>
+        <li>uma conta que passar do vencimento sem ser marcada continua pendente e aparece como atrasada no aviso de abertura.</li>
+        <li>adiantar a data faz o app cobrar contas mais antigas; atrasar deixa mais coisa como histórico.</li>
+      </ul>
+      <button class="save-btn" id="cutSave">salvar</button>
+    </div>`);
+  document.getElementById("cutSave").onclick=()=>{
+    const v=document.getElementById("cutDate").value;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ toast("Data inválida"); return; }
+    state.settings.pagoCutoff=v; persist(); closeSheet(); refresh(); toast("Corte atualizado");
+  };
+}
+
 function openForecastSheet(){
   const dim=daysInMonth(view.y,view.m);
   const cur=forecastValue();
@@ -2866,6 +2901,7 @@ function subscribeCloud(){
       lastServerSync=new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
       hideLoading();
       if(view.tab==="menu") render();
+      if(cutoffNovo){ cutoffNovo=false; persist(); }   // fixa o corte na nuvem
       setTimeout(checarPendencias,650);   // só depois que os dados reais chegaram
     }else{
       // Veio do cache (provavelmente offline). Só serve para PREENCHER a primeira
