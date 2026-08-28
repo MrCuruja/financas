@@ -345,10 +345,27 @@
   .al-nm{font-size:16px;font-weight:700;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .al-dt{font-size:13px;font-weight:600;color:var(--txt-2);margin-top:2px;}
   .al-vl{font-size:16px;font-weight:800;color:var(--txt);white-space:nowrap;font-variant-numeric:tabular-nums;}
-  .al-pg{width:32px;height:32px;flex:0 0 auto;border-radius:50%;border:2px solid var(--green);
-    background:var(--surface);color:var(--green);font-size:16px;font-weight:900;
-    transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
-  .al-pg:active{transform:scale(.9);background:var(--green);color:#fff;}
+  /* checkbox: o traço do ✓ é desenhado com stroke-dashoffset para a marcação ser visível */
+  .al-chk{width:30px;height:30px;flex:0 0 auto;padding:0;border-radius:9px;
+    border:2px solid var(--txt-3);background:var(--surface);
+    display:flex;align-items:center;justify-content:center;
+    transition:background-color .2s var(--ease-out),border-color .2s var(--ease-out),
+      transform .26s var(--ease-ios);}
+  .al-chk svg{width:17px;height:17px;display:block;fill:none;stroke:#fff;stroke-width:3.4;
+    stroke-linecap:round;stroke-linejoin:round;}
+  .al-chk svg path{stroke-dasharray:22;stroke-dashoffset:22;}
+  .al-chk:active{transform:scale(.88);}
+  .al-chk.done{background:var(--green);border-color:var(--green);animation:chkPop .34s var(--ease-ios);}
+  .al-chk.done svg path{stroke-dashoffset:0;transition:stroke-dashoffset .26s var(--ease-out) .06s;}
+  @keyframes chkPop{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
+
+  .al-row{max-height:78px;overflow:hidden;
+    transition:opacity .28s var(--ease-out),transform .28s var(--ease-ios),
+      max-height .28s var(--ease-out),padding .28s var(--ease-out);}
+  .al-row.done .al-nm,.al-row.done .al-vl{text-decoration:line-through;color:var(--txt-3);
+    transition:color .2s var(--ease-out);}
+  .al-row.gone{opacity:0;transform:translateX(26px);max-height:0;
+    padding-top:0;padding-bottom:0;border-top-width:0;}
   .al-foot{padding:16px 20px 18px;}
   .al-foot .modal-opt{margin-bottom:10px;}
   .al-foot .modal-cancel{margin:0;}
@@ -699,7 +716,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-27 · corte de pagamentos v7";
+const APP_VERSION="2026-08-27 · checkbox animado v8";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -1984,7 +2001,9 @@ function renderAlertaPendencias(){
         <div class="al-dt">${d.slice(8,10)}/${d.slice(5,7)}${t.card?" · "+esc(t.card):""}${t.tag?" · "+esc(t.tag):""}</div>
       </div>
       <div class="al-vl">${brl(t.amount)}</div>
-      <button class="al-pg" title="marcar como pago">✓</button>
+      <button class="al-chk" aria-label="marcar como pago" role="checkbox" aria-checked="false">
+        <svg viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.6L19 7.2"/></svg>
+      </button>
     </div>`;
   };
 
@@ -2008,17 +2027,37 @@ function renderAlertaPendencias(){
   requestAnimationFrame(()=>m.classList.add("open"));
 
   m.querySelectorAll("[data-pg]").forEach(el=>{
-    el.querySelector(".al-pg").onclick=e=>{
+    const chk=el.querySelector(".al-chk");
+    chk.onclick=e=>{
       e.stopPropagation();
+      if(el.dataset.busy) return;        // ignora toques repetidos durante a animação
+      el.dataset.busy="1";
+      chk.classList.add("done"); chk.setAttribute("aria-checked","true");
+      el.classList.add("done");
       const t=state.tx.find(x=>x.id===el.dataset.pg);
       if(t){ setPago(t,true); persist(); refresh(); }
-      renderAlertaPendencias();          // some da lista; fecha sozinho se esvaziar
+      // deixa o ✓ ser desenhado antes de recolher a linha
+      setTimeout(()=>{
+        el.classList.add("gone");
+        setTimeout(renderAlertaPendencias,300);   // fecha sozinho se esvaziar
+      },430);
     };
-    el.onclick=()=>{ const id=el.dataset.pg; fecharAlerta(); openTxSheet(id); };
+    el.onclick=()=>{ if(el.dataset.busy) return; const id=el.dataset.pg; fecharAlerta(); openTxSheet(id); };
   });
   document.getElementById("alTudo").onclick=()=>{
+    const btn=document.getElementById("alTudo");
+    if(btn.dataset.busy) return;
+    btn.dataset.busy="1";
+    // marca visualmente todas em cascata antes de fechar
+    [...m.querySelectorAll("[data-pg]")].forEach((el,i)=>{
+      const c=el.querySelector(".al-chk");
+      setTimeout(()=>{ c.classList.add("done"); c.setAttribute("aria-checked","true");
+        el.classList.add("done"); }, i*55);
+    });
     [...atr,...hoje].forEach(t=>setPago(t,true));
-    persist(); refresh(); fecharAlerta(); toast("Contas marcadas como pagas");
+    persist(); refresh();
+    const espera=Math.min(700, atr.length+hoje.length ? (atr.length+hoje.length-1)*55+420 : 0);
+    setTimeout(()=>{ fecharAlerta(); toast("Contas marcadas como pagas"); },espera);
   };
   document.getElementById("alFechar").onclick=fecharAlerta;
   m.onclick=e=>{ if(e.target===m) fecharAlerta(); };
