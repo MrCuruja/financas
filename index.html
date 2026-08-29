@@ -744,7 +744,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-29 · fechamento da fatura v11";
+const APP_VERSION="2026-08-29 · totais com previsão v12";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -1207,15 +1207,16 @@ function chip(type){ return badge(type,"sm"); }
 function renderTotais(){
   const c=document.getElementById("content");
   const t=monthTotals(view.y,view.m);
-  const perf=t.entrada-t.saida-t.diario-t.economia-t.cartao;
-  const custo=t.saida+t.diario+t.cartao;
   const dim=daysInMonth(view.y,view.m);
   const now=new Date();
   const divDays=(now.getFullYear()===view.y&&now.getMonth()===view.m)?now.getDate():dim;
-  const medio=t.diario/divDays;
-  const pct=t.entrada>0?(t.economia/t.entrada*100):0;
   const prevList=forecastTx(view.y,view.m);
   const prevTot=prevList.reduce((a,x)=>a+x.amount,0);
+  // a previsão de diário entra nos dois cálculos: é dinheiro que ainda vai sair
+  const perf=t.entrada-t.saida-t.diario-t.economia-t.cartao-prevTot;
+  const custo=t.saida+t.diario+t.cartao+prevTot;
+  const medio=t.diario/divDays;          // média usa só o diário REAL
+  const pct=t.entrada>0?(t.economia/t.entrada*100):0;
   // realizado x previsto: só saídas de dinheiro (entradas ficam de fora)
   const mesTx=monthTx(view.y,view.m).filter(x=>x.type!=="entrada");
   const saiTot=mesTx.reduce((a,x)=>a+x.amount,0);
@@ -1231,7 +1232,7 @@ function renderTotais(){
     <div class="section-title">cálculos do mês</div>
     <div class="calc" id="perfCard" style="cursor:pointer">
       <div class="top"><div class="name">performance <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:${perfColor}">${brl(perf)}</div><div class="cap">${perfCap}</div></div></div>
-      <div class="chips">${chip("entrada")}<span class="op">−</span>${chip("saida")}<span class="op">−</span>${chip("diario")}<span class="op">−</span>${chip("economia")}<span class="op">−</span>${chip("cartao")}</div>
+      <div class="chips">${chip("entrada")}<span class="op">−</span>${chip("saida")}<span class="op">−</span>${chip("diario")}<span class="op">−</span>${chip("economia")}<span class="op">−</span>${chip("cartao")}${prevTot?`<span class="op">−</span>${chip("previsao")}`:""}</div>
     </div>
     <div class="calc" id="ecoCard" style="cursor:pointer">
       <div class="top"><div class="name">economizado <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${pct.toFixed(0)}%</div><div class="cap">${pct<=0?"nada guardado":"da renda guardada"}</div></div></div>
@@ -1239,19 +1240,15 @@ function renderTotais(){
     </div>
     <div class="calc" id="custoCard" style="cursor:pointer">
       <div class="top"><div class="name">custo de vida <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(custo)}</div><div class="cap">${custoCap}</div></div></div>
-      <div class="chips">${chip("saida")}<span class="op">+</span>${chip("diario")}<span class="op">+</span>${chip("cartao")}</div>
+      <div class="chips">${chip("saida")}<span class="op">+</span>${chip("diario")}<span class="op">+</span>${chip("cartao")}${prevTot?`<span class="op">+</span>${chip("previsao")}`:""}</div>
     </div>
     <div class="calc" id="mediaCard" style="cursor:pointer">
       <div class="top"><div class="name">diário médio <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(medio)}</div><div class="cap">por dia</div></div></div>
-      <div class="chips"><span class="badge sm diario">D</span><span style="color:var(--txt-2);font-weight:700">/ ${divDays} dias</span></div>
+      <div class="chips"><span class="badge sm diario">D</span><span style="color:var(--txt-2);font-weight:700">/ ${divDays} dias</span>${forecastValue()?`<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">${badge("previsao","sm")}<span style="color:var(--txt-2);font-weight:700">${brl(forecastValue())}</span></span>`:""}</div>
     </div>
     <div class="calc" id="pagoCard" style="cursor:pointer">
       <div class="top"><div class="name">realizado <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(saiPago)}</div><div class="cap">${saiTot>0?`de ${brl(saiTot)} previsto`:"nada lançado"}</div></div></div>
       <div class="chips"><div class="bar"><i style="width:${Math.max(0,Math.min(100,pgPct))}%;background:var(--green)"></i></div><span style="color:${atrasados.length?'var(--saida)':'var(--txt-2)'};font-weight:700;margin-left:10px">${atrasados.length?`${atrasados.length} atrasado${atrasados.length>1?"s":""}`:`${pgPct.toFixed(0)}% pago`}</span></div>
-    </div>
-    <div class="calc" id="prevCard" style="cursor:pointer">
-      <div class="top"><div class="name">previsão de diário <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:var(--diario)">${brl(prevTot)}</div><div class="cap">${forecastValue()?`${brl(forecastValue())} × ${prevList.length} ${prevList.length===1?"dia":"dias"}`:"sem previsão"}</div></div></div>
-      <div class="chips"><span class="badge sm previsao">D</span><span style="color:var(--txt-2);font-weight:700">${forecastValue()?"projeção dos dias que faltam":"toque para definir"}</span></div>
     </div>
     <div class="calc" id="cardsCard" style="cursor:pointer">
       <div class="top"><div class="name">cartões <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:var(--cartao)">${brl(t.cartao)}</div><div class="cap">${state.cards.length?"nas faturas do mês":"nenhum cartão"}</div></div></div>
@@ -1265,8 +1262,13 @@ function renderTotais(){
       ${movRow("diario",t.diario)}
       ${movRow("economia",t.economia)}
       ${movRow("cartao",t.cartao)}
-      ${movRow("previsao",prevTot)}
       <div class="rowitem" data-mov="todas"><span class="badge todas" style="background:var(--txt-2)">•••</span><span class="label">ver todas</span></div>
+    </div>
+
+    <div class="section-title">previsão de diários do mês</div>
+    <div class="card">
+      <div class="rowitem" id="prevRow">${badge("previsao")}<span class="label">previsão de diário${prevList.length?` <span style="color:var(--txt-2);font-weight:700">× ${prevList.length}</span>`:""}</span><span class="value" style="color:var(--diario)">${brl(prevTot)}</span></div>
+      <div class="rowitem" id="prevRow2" style="border-bottom:none"><span class="badge todas" style="background:var(--txt-3)">⚙</span><span class="label" style="color:var(--txt-2);font-weight:700">${forecastValue()?`${brl(forecastValue())} por dia · ${prevList.length} ${prevList.length===1?"dia restante":"dias restantes"}`:"definir previsão diária"}</span></div>
     </div>
     <div style="height:20px"></div>
   </div>`;
@@ -1277,7 +1279,8 @@ function renderTotais(){
   const _cc=document.getElementById("custoCard"); if(_cc)_cc.onclick=openCusto;
   const _mc=document.getElementById("mediaCard"); if(_mc)_mc.onclick=openMedia;
   const _cd=document.getElementById("cardsCard"); if(_cd)_cd.onclick=openCardsView;
-  const _pv=document.getElementById("prevCard"); if(_pv)_pv.onclick=openForecastSheet;
+  ["prevRow","prevRow2"].forEach(id=>{ const el=document.getElementById(id);
+    if(el){ el.style.cursor="pointer"; onTap(el, openForecastSheet); } });
   const _pg=document.getElementById("pagoCard"); if(_pg)_pg.onclick=()=>{
     searchQ=""; searchType="todas"; searchStatus=atrasados.length?"atrasados":"pendentes"; openSearch(); };
 }
@@ -1295,11 +1298,15 @@ function movRow(type,val){
 let perfOpen=false, perfYear=new Date().getFullYear(), perfHelp=false;
 
 /* resultado real do mês: entradas − (saídas + diários + economias + cartão) */
+/* Inclui a previsão de diário, igual ao card da tela de totais — senão o número
+   do card e o do detalhamento do ano não bateriam. Meses passados não têm
+   previsão (forecastTx devolve vazio), então o histórico não muda. */
+function monthForecastTotal(y,m){ return forecastTx(y,m).reduce((a,x)=>a+x.amount,0); }
 function monthResult(y,m){
   const tx=monthTx(y,m);
   if(!tx.length) return {empty:true,val:0};
   const t=monthTotals(y,m);
-  return {empty:false, val:t.entrada - t.saida - t.diario - t.economia - t.cartao};
+  return {empty:false, val:t.entrada - t.saida - t.diario - t.economia - t.cartao - monthForecastTotal(y,m)};
 }
 
 function openPerf(){
@@ -1521,7 +1528,7 @@ function monthCost(y,m){
   const tx=monthTx(y,m);
   if(!tx.length) return {empty:true,val:0};
   const t=monthTotals(y,m);
-  return {empty:false, val:t.saida + t.diario + t.cartao};
+  return {empty:false, val:t.saida + t.diario + t.cartao + monthForecastTotal(y,m)};
 }
 
 function openCusto(){
