@@ -744,7 +744,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-27 · correções fatura e busca v10";
+const APP_VERSION="2026-08-29 · fechamento da fatura v11";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -2123,6 +2123,22 @@ function faturaItems(cardName,key){
   return state.tx.filter(t=>t.type==="cartao"&&t.card===cardName&&txMonthKey(t)===key)
     .sort((a,b)=>buyDateOf(a).localeCompare(buyDateOf(b)));
 }
+/* Data em que a fatura para de receber compras.
+   Pela regra de defaultFatura, uma compra com dia > close vai para a fatura do mês
+   SEGUINTE. Então a fatura de setembro junta as compras de 20/ago a 19/set e fecha
+   em 19/SET — no mesmo mês da chave, não no anterior. */
+function faturaFecha(card,key){
+  const y=+key.slice(0,4), m=+key.slice(5,7)-1;
+  const close=clampDay(card.close);
+  const venc=faturaVenc(card,key);
+  if(!close) return venc;                       // cartão sem dia de fechamento
+  let fy=y, fm=m;
+  let f=dstr(fy,fm,Math.min(close,daysInMonth(fy,fm)));
+  // cartão cujo vencimento cai antes do fechamento (ex.: fecha 25, vence 5): fecha no mês anterior
+  if(f>venc){ fm=m-1; if(fm<0){ fm=11; fy--; }
+    f=dstr(fy,fm,Math.min(close,daysInMonth(fy,fm))); }
+  return f;
+}
 /* Situação da fatura em relação a hoje:
    aberta   -> ainda recebe compras (não passou do fechamento)
    fechada  -> fechou, aguarda pagamento
@@ -2130,12 +2146,7 @@ function faturaItems(cardName,key){
 function faturaStatus(card,key){
   const itens=faturaItems(card.name,key);
   if(itens.length && itens.every(isPago)) return "paga";
-  const y=+key.slice(0,4), m=+key.slice(5,7)-1;
-  const close=clampDay(card.close);
-  // a fatura de mês M fecha no dia `close` do mês ANTERIOR (é quando para de receber compras)
-  let cy=y, cm=m-1; if(cm<0){ cm=11; cy--; }
-  const fechamento=dstr(cy,cm,Math.min(close,daysInMonth(cy,cm)));
-  return hojeStr()<=fechamento ? "aberta" : "fechada";
+  return hojeStr()<=faturaFecha(card,key) ? "aberta" : "fechada";
 }
 function faturaVenc(card,key){
   const y=+key.slice(0,4), m=+key.slice(5,7)-1, d=clampDay(card.due);
@@ -2168,10 +2179,12 @@ function renderFatura(){
   const pago=itens.filter(isPago).reduce((a,t)=>a+t.amount,0);
   const st=faturaStatus(c,key);
   const venc=faturaVenc(c,key);
+  const fecha=faturaFecha(c,key);
+  const br=d=>d.split("-").reverse().join("/");
   const col=cardColor(c);
 
   const STAT={
-    aberta:{lbl:"aberta",cor:"var(--txt-2)",desc:"ainda recebe compras"},
+    aberta:{lbl:"aberta",cor:"var(--cartao)",desc:"ainda recebe compras"},
     fechada:{lbl:"fechada",cor:"var(--saida)",desc:"aguardando pagamento"},
     paga:{lbl:"paga",cor:"var(--green)",desc:"quitada"}
   }[st];
@@ -2200,7 +2213,7 @@ function renderFatura(){
       <div class="ft-card"><span class="dot" style="background:${col}"></span><span class="nm">${esc(c.name)}</span>
         <span class="ft-stat" style="color:${STAT.cor};border-color:${STAT.cor}">${STAT.lbl}</span></div>
       <div class="ft-tot">${brl(tot)}</div>
-      <div class="ft-sub">vence em ${venc.split("-").reverse().join("/")} · fecha dia ${c.close} · ${STAT.desc}</div>
+      <div class="ft-sub">${st==="aberta"?`fecha em ${br(fecha)}`:`fechou em ${br(fecha)}`} · vence em ${br(venc)} · ${STAT.desc}</div>
       ${itens.length&&st!=="paga"&&pago>0?`<div class="ft-sub">${brl(pago)} de ${brl(tot)} já marcado como pago</div>`:""}
     </div>
     ${itens.length?`<div style="padding:0 18px 4px">
@@ -2208,7 +2221,8 @@ function renderFatura(){
         ${st==="paga"?"desmarcar pagamento":"marcar fatura como paga"}</button>
       <div class="field-hint" style="text-align:center;padding-bottom:6px">
         ${st==="paga"?"volta os itens para o status automático (pela data)."
-          :`marca ${itens.length} ${itens.length===1?"item":"itens"} como pagos. Não cria lançamento novo — o gasto do cartão já pesa no saldo em ${venc.slice(8,10)}/${venc.slice(5,7)}.`}
+          :`marca ${itens.length} ${itens.length===1?"item":"itens"} como ${itens.length===1?"pago":"pagos"}. Não cria lançamento novo — o gasto do cartão já pesa no saldo em ${venc.slice(8,10)}/${venc.slice(5,7)}.`}
+        ${st==="aberta"?`<br>Esta fatura ainda está aberta e pode receber novas compras até ${br(fecha)}.`:""}
       </div></div>`:""}
     <div class="scroll">${rows}</div>
   </div>`;
