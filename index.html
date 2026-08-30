@@ -746,7 +746,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-29 · grade de totais v13";
+const APP_VERSION="2026-08-30 · previsão a partir de amanhã v14";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -972,9 +972,10 @@ function monthTx(y,m){ const k=faturaKey(y,m); return state.tx.filter(t=>txMonth
 
 /* ---- Previsão de diário ----
    Valor médio que você espera gastar por dia. NÃO é gravado: é calculado na hora,
-   como lançamento virtual. Por isso "zera sozinho" — assim que o dia vira passado,
-   ou assim que existe um diário real naquele dia, a previsão simplesmente some.
-   Vale só para hoje e dias futuros. */
+   como lançamento virtual. Por isso "zera sozinho" — assim que o dia chega, ou
+   assim que existe um diário real naquele dia, a previsão simplesmente some.
+   Vale a partir de AMANHÃ: o dia de hoje já está em curso e é acompanhado pelos
+   diários reais, então à meia-noite a previsão do dia zera por conta própria. */
 function forecastValue(){ return Math.max(0, +(state.settings&&state.settings.diarioForecast)||0); }
 function forecastTx(y,m){
   const v=forecastValue(); if(!v) return [];
@@ -982,7 +983,7 @@ function forecastTx(y,m){
   const ty=now.getFullYear(), tm=now.getMonth(), td=now.getDate();
   if(y<ty||(y===ty&&m<tm)) return [];               // mês passado: nada previsto
   const dim=daysInMonth(y,m);
-  const first=(y===ty&&m===tm)?td:1;                // no mês corrente começa hoje
+  const first=(y===ty&&m===tm)?td+1:1;              // no mês corrente começa AMANHÃ
   const temDiario={};
   state.tx.forEach(t=>{ if(t.type==="diario") temDiario[t.date]=true; });
   const out=[];
@@ -2767,7 +2768,7 @@ function openAddSheet(txId,presetDate){
   if(editing) document.getElementById("delTx").onclick=async()=>{
     if(await deleteTx(editing.id)){ closeSheet(); refresh(); toast("Excluído"); }
   };
-  setTimeout(()=>{ const a=document.getElementById("fAmount"); if(a&&!editing)a.focus(); },300);
+  if(!editing) autoFoco(document.getElementById("fAmount"));   // novo lançamento
 }
 
 /* toque num lançamento -> ações */
@@ -2942,7 +2943,7 @@ function openForecastSheet(){
   };
   const off=document.getElementById("fcOff");
   if(off)off.onclick=()=>{ state.settings.diarioForecast=0; persist(); closeSheet(); refresh(); toast("Previsão desligada"); };
-  setTimeout(()=>el.focus(),300);
+  autoFoco(el);
 }
 
 function promptValue(title,key,hint){
@@ -2964,7 +2965,7 @@ function promptValue(title,key,hint){
     state.settings[key]=neg?-v:v;
     persist(); closeSheet(); render(); toast("Salvo");
   };
-  setTimeout(()=>el.focus(),300);
+  autoFoco(el);
 }
 
 /* export / import */
@@ -3159,6 +3160,14 @@ if(FB_ON){
 
 /* =================== Layout horizontal (PC / iPad) =================== */
 const MQ_WIDE = window.matchMedia("(min-width:820px)");
+/* Em aparelho de toque o foco automático faz o teclado subir e cobrir metade do
+   sheet. Só damos foco quando há ponteiro fino (mouse/trackpad). */
+const MQ_FINO = window.matchMedia("(hover:hover) and (pointer:fine)");
+function autoFoco(el,delay=300){
+  if(!el) return;
+  if(!MQ_FINO.matches) return;                     // toque: espera o usuário tocar no campo
+  setTimeout(()=>{ try{ el.focus(); }catch(e){} },delay);
+}
 function isWide(){ return MQ_WIDE.matches; }
 
 /* Dispara a ação já no primeiro toque (pointerup), evitando o atraso/engolimento
