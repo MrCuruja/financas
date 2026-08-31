@@ -376,6 +376,7 @@
   .al-chk svg path{stroke-dasharray:22;stroke-dashoffset:22;}
   .al-chk:active{transform:scale(.88);}
   .al-chk.done{background:var(--green);border-color:var(--green);animation:chkPop .34s var(--ease-ios);}
+  .al-row.rec .al-nm{color:var(--txt);}
   .al-chk.done svg path{stroke-dashoffset:0;transition:stroke-dashoffset .26s var(--ease-out) .06s;}
   @keyframes chkPop{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
 
@@ -746,7 +747,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-30 · previsão a partir de amanhã v14";
+const APP_VERSION="2026-08-31 · tipos marcáveis v15";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -897,6 +898,9 @@ function normalizeState(st){
   st.tx.forEach(t=>{
     // "pago" é tri-estado: true, false, ou ausente (decidido pela data)
     if(t.pago!==true && t.pago!==false) delete t.pago;
+    // diário e economia deixaram de ser marcáveis: descarta marcação antiga.
+    // Só age em tipos conhecidos — lançamento sem type não perde o campo.
+    if(t.pago!==undefined && (t.type==="diario"||t.type==="economia"||t.type==="previsao")) delete t.pago;
     if(!t.kind && t.series && t.recur && /\(\d+\/\d+\)\s*$/.test(t.desc||"")){
       t.kind="parcela"; delete t.recur;   // legado: só o cartão numerava antes
     }
@@ -1010,9 +1014,14 @@ function hojeStr(){ const n=new Date(); return dstr(n.getFullYear(),n.getMonth()
    DELA EM DIANTE: nada conta como pago sem marcação — então uma conta que passou
    sem ser marcada continua pendente e vira atrasada, em vez de virar paga sozinha. */
 function pagoCutoff(){ return (state.settings&&state.settings.pagoCutoff)||hojeStr(); }
+/* Tipos cujo pagamento é acompanhado manualmente. Diários e economias ficam de
+   fora: são lançados no mesmo dia em que acontecem, então nunca são "previstos". */
+const TIPOS_PAGAVEIS={entrada:1,saida:1,cartao:1};
+function exigePagamento(t){ return !!TIPOS_PAGAVEIS[t.type]; }
 /* t.pago===true força "pago"; t.pago===false força "pendente". */
 function isPago(t){
   if(t.type==="previsao") return false;
+  if(!exigePagamento(t)) return true;      // diário / economia: sempre realizados
   if(t.pago===true) return true;
   if(t.pago===false) return false;
   return effDate(t)<pagoCutoff();
@@ -1020,10 +1029,14 @@ function isPago(t){
 /* pendente e já vencido */
 function isAtrasado(t){ return !isPago(t) && t.type!=="previsao" && effDate(t)<hojeStr(); }
 function setPago(t,v){
+  if(!exigePagamento(t)){ delete t.pago; return; }   // não se marca diário/economia
   // grava só quando difere do que o corte já indicaria, para não encher o documento
   const auto = effDate(t)<pagoCutoff();
   if(v===auto) delete t.pago; else t.pago=v;
 }
+/* rótulo por tipo: entrada se recebe, o resto se paga */
+function palavraPago(t){ return t.type==="entrada"?"recebido":"pago"; }
+function palavraPendente(t){ return t.type==="entrada"?"a receber":"previsto"; }
 function monthTotals(y,m){
   const o={entrada:0,saida:0,diario:0,economia:0,cartao:0,previsao:0};
   monthTx(y,m).forEach(t=>o[t.type]+=t.amount);
@@ -1220,8 +1233,9 @@ function renderTotais(){
   const custo=t.saida+t.diario+t.cartao+prevTot;
   const medio=t.diario/divDays;          // média usa só o diário REAL
   const pct=t.entrada>0?(t.economia/t.entrada*100):0;
-  // realizado x previsto: só saídas de dinheiro (entradas ficam de fora)
-  const mesTx=monthTx(view.y,view.m).filter(x=>x.type!=="entrada");
+  // realizado x previsto: só o que se acompanha manualmente (saídas e cartão).
+  // Diário e economia são sempre realizados, então inflariam o "pago" sem informar nada.
+  const mesTx=monthTx(view.y,view.m).filter(x=>x.type==="saida"||x.type==="cartao");
   const saiTot=mesTx.reduce((a,x)=>a+x.amount,0);
   const saiPago=mesTx.filter(isPago).reduce((a,x)=>a+x.amount,0);
   const atrasados=mesTx.filter(isAtrasado);
@@ -2025,10 +2039,11 @@ function renderMov(){
 }
 
 /* =================== Aviso de pendências na abertura =================== */
-/* Só contas: saídas e faturas de cartão. Diários e economias ficam de fora
-   porque não são compromissos a pagar. */
+/* Entram no aviso os tipos acompanhados manualmente: saídas, faturas de cartão
+   e entradas (para lembrar do dinheiro que era esperado e não chegou).
+   Diários e economias ficam de fora — são sempre realizados. */
 let alertaMostrado=false;
-const ALERTA_TIPOS={saida:1,cartao:1};
+const ALERTA_TIPOS=TIPOS_PAGAVEIS;
 
 function pendenciasHoje(){
   const h=hojeStr();
@@ -2052,8 +2067,15 @@ function renderAlertaPendencias(){
   const hoje=pendenciasHoje(), atr=pendenciasAtrasadas();
   if(!hoje.length && !atr.length){ fecharAlerta(); return; }
   const m=document.getElementById("modal");
-  const tHoje=hoje.reduce((a,t)=>a+t.amount,0);
-  const tAtr=atr.reduce((a,t)=>a+t.amount,0);
+  // entradas e saídas não se somam: cada grupo mostra "a pagar" e "a receber"
+  const resumo=list=>{
+    const pagar=list.filter(t=>t.type!=="entrada").reduce((a,t)=>a+t.amount,0);
+    const receber=list.filter(t=>t.type==="entrada").reduce((a,t)=>a+t.amount,0);
+    const p=[];
+    if(pagar) p.push(`${brl(pagar)} a pagar`);
+    if(receber) p.push(`${brl(receber)} a receber`);
+    return p.join(" · ");
+  };
 
   const linha=t=>{
     const d=effDate(t);
@@ -2063,8 +2085,8 @@ function renderAlertaPendencias(){
         <div class="al-nm">${esc(t.desc||TYPE_WORD[t.type])}</div>
         <div class="al-dt">${d.slice(8,10)}/${d.slice(5,7)}${t.card?" · "+esc(t.card):""}${t.tag?" · "+esc(t.tag):""}</div>
       </div>
-      <div class="al-vl">${brl(t.amount)}</div>
-      <button class="al-chk" aria-label="marcar como pago" role="checkbox" aria-checked="false">
+      <div class="al-vl"${t.type==="entrada"?' style="color:var(--green)"':""}>${t.type==="entrada"?"+":""}${brl(t.amount)}</div>
+      <button class="al-chk" aria-label="${t.type==="entrada"?"marcar como recebido":"marcar como pago"}" role="checkbox" aria-checked="false">
         <svg viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.6L19 7.2"/></svg>
       </button>
     </div>`;
@@ -2074,16 +2096,16 @@ function renderAlertaPendencias(){
     <div class="al-head">
       <span class="al-ico">!</span>
       <div>
-        <div class="al-tit">contas a pagar</div>
-        <div class="al-sub">${atr.length?`${atr.length} atrasada${atr.length>1?"s":""}`:""}${atr.length&&hoje.length?" · ":""}${hoje.length?`${hoje.length} vence${hoje.length>1?"m":""} hoje`:""}</div>
+        <div class="al-tit">pendências</div>
+        <div class="al-sub">${atr.length?`${atr.length} atrasada${atr.length>1?"s":""}`:""}${atr.length&&hoje.length?" · ":""}${hoje.length?`${hoje.length} para hoje`:""}</div>
       </div>
     </div>
     <div class="al-list">
-      ${atr.length?`<div class="al-sec late">atrasadas · ${brl(tAtr)}</div>${atr.map(linha).join("")}`:""}
-      ${hoje.length?`<div class="al-sec">vencem hoje · ${brl(tHoje)}</div>${hoje.map(linha).join("")}`:""}
+      ${atr.length?`<div class="al-sec late">atrasadas · ${resumo(atr)}</div>${atr.map(linha).join("")}`:""}
+      ${hoje.length?`<div class="al-sec">hoje · ${resumo(hoje)}</div>${hoje.map(linha).join("")}`:""}
     </div>
     <div class="al-foot">
-      <button class="modal-opt" id="alTudo">marcar todas como pagas</button>
+      <button class="modal-opt" id="alTudo">confirmar todas</button>
       <button class="modal-cancel" id="alFechar">agora não</button>
     </div>
   </div>`;
@@ -2120,7 +2142,7 @@ function renderAlertaPendencias(){
     [...atr,...hoje].forEach(t=>setPago(t,true));
     persist(); refresh();
     const espera=Math.min(700, atr.length+hoje.length ? (atr.length+hoje.length-1)*55+420 : 0);
-    setTimeout(()=>{ fecharAlerta(); toast("Contas marcadas como pagas"); },espera);
+    setTimeout(()=>{ fecharAlerta(); toast("Pendências confirmadas"); },espera);
   };
   document.getElementById("alFechar").onclick=fecharAlerta;
   m.onclick=e=>{ if(e.target===m) fecharAlerta(); };
@@ -2374,11 +2396,13 @@ function renderSearch(){
 
 /* rótulo curto de status usado nas listas */
 function txRowCls(t){ return isAtrasado(t)?"pend atraso":(isPago(t)?"":"pend"); }
+/* (diário e economia são sempre pagos, então nunca recebem a classe "pend") */
 function statusLabel(t){
   if(t.type==="previsao") return "previsão";
+  if(!exigePagamento(t)) return seriesGlyph(t)+TYPE_WORD[t.type];  // diário/economia
   if(isAtrasado(t)) return "atrasado";
-  if(isPago(t)) return seriesGlyph(t)+"pago";
-  return seriesGlyph(t)+"previsto";
+  if(isPago(t)) return seriesGlyph(t)+palavraPago(t);
+  return seriesGlyph(t)+palavraPendente(t);
 }
 
 /* =================== Tag: lançamentos do mês =================== */
@@ -2783,17 +2807,19 @@ function openTxSheet(txId){
       <div style="text-align:center;color:var(--txt-2);font-weight:600">${t.date.split('-').reverse().join('/')}</div>
       ${t.type==="cartao"&&t.fatura&&cardBy(t.card)?`<button id="verFatura" style="display:block;margin:8px auto 0;background:none;border:none;color:var(--cartao);font-weight:800;font-size:16px">ver fatura de ${faturaLabel(t.fatura)} ›</button>`:(t.type==="cartao"&&t.fatura?`<div style="text-align:center;color:var(--cartao);font-weight:800;margin-top:6px">fatura de ${faturaLabel(t.fatura)}</div>`:"")}
       ${t.series&&state.tx.some(x=>x.series===t.series&&x.id!==t.id)?`<div style="text-align:center;color:var(--txt-2);font-weight:700;margin-top:8px">${isParcela(t)?"# lançamento parcelado":"↺ lançamento repetido"}</div>`:""}
-      <button class="pago-toggle ${isPago(t)?'on':''} ${isAtrasado(t)?'late':''}" id="pagoThis">
+      ${exigePagamento(t)?`<button class="pago-toggle ${isPago(t)?'on':''} ${isAtrasado(t)?'late':''}" id="pagoThis">
         <span class="pg-box">${isPago(t)?"✓":""}</span>
-        <span class="pg-txt">${isPago(t)?"pago":(isAtrasado(t)?"pendente · vencido":"previsto")}</span>
+        <span class="pg-txt">${isPago(t)?palavraPago(t):(isAtrasado(t)?"pendente · vencido":palavraPendente(t))}</span>
         <span class="pg-hint">${t.pago===undefined?"pela data":"marcado por você"}</span>
-      </button>
+      </button>`:""}
       <button class="save-btn" id="editThis">editar</button>
       <button class="del-btn" id="delThis">excluir</button>
     </div>`);
-  document.getElementById("pagoThis").onclick=()=>{
+  const _pg=document.getElementById("pagoThis");
+  if(_pg)_pg.onclick=()=>{
     setPago(t,!isPago(t)); persist(); refresh(); openTxSheet(txId);
-    toast(isPago(t)?"Marcado como pago":"Marcado como previsto");
+    toast(isPago(t)?(t.type==="entrada"?"Marcado como recebido":"Marcado como pago")
+                   :(t.type==="entrada"?"Marcado como a receber":"Marcado como previsto"));
   };
   const vf=document.getElementById("verFatura");
   if(vf)vf.onclick=()=>{ const c=cardBy(t.card); closeSheet(); openFatura(c.id,t.fatura); };
