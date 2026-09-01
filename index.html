@@ -302,11 +302,18 @@
   .pg-line{display:flex;justify-content:space-between;align-items:baseline;font-size:16px;
     font-weight:700;color:var(--txt-2);margin-bottom:9px;}
   .pg-line b{font-size:22px;font-weight:800;color:var(--txt);letter-spacing:-.4px;}
-  .pg-head .bar{height:9px;border-radius:6px;background:var(--line-strong);overflow:hidden;}
-  .pg-head .bar i{display:block;height:100%;border-radius:6px;}
+  .pg-head .bar{height:16px;border-radius:10px;background:var(--line-strong);overflow:hidden;}
+  .pg-head .bar i{display:block;height:100%;border-radius:10px;
+    transition:width var(--dur) var(--ease-out);}
   .pg-sub{font-size:14px;font-weight:600;color:var(--txt-2);margin-top:8px;}
   .pg-row{cursor:pointer;}
-  .pg-row.done .al-nm,.pg-row.done .al-vl{opacity:.5;}
+  /* pago: apenas esmaecido. O riscado é do popup e não se aplica aqui — a linha
+     continua na lista, então o traço aparecia e sumia no redesenho seguinte. */
+  .pg-row.done .al-nm,.pg-row.done .al-vl{opacity:.45;text-decoration:none;color:inherit;
+    transition:opacity var(--dur) var(--ease-out);}
+  /* filtros desta tela trocam sem animação */
+  #pagoview .sq-chip{transition:none;}
+  #pagoview .sq-chip:active{transform:none;}
   .search-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--bg);display:flex;flex-direction:column;}
   .sq-box{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:14px;
     background:var(--surface);border:1px solid var(--line-strong);}
@@ -395,7 +402,8 @@
       transform .26s var(--ease-ios);}
   .al-chk svg{width:17px;height:17px;display:block;fill:none;stroke:#fff;stroke-width:3.4;
     stroke-linecap:round;stroke-linejoin:round;}
-  .al-chk svg path{stroke-dasharray:22;stroke-dashoffset:22;}
+  .al-chk svg path{stroke-dasharray:22;stroke-dashoffset:22;
+    transition:stroke-dashoffset .22s var(--ease-out);}
   .al-chk:active{transform:scale(.88);}
   .al-chk.done{background:var(--green);border-color:var(--green);animation:chkPop .34s var(--ease-ios);}
   .al-row.rec .al-nm{color:var(--txt);}
@@ -405,7 +413,7 @@
   .al-row{max-height:78px;overflow:hidden;
     transition:opacity .28s var(--ease-out),transform .28s var(--ease-ios),
       max-height .28s var(--ease-out),padding .28s var(--ease-out);}
-  .al-row.done .al-nm,.al-row.done .al-vl{text-decoration:line-through;color:var(--txt-3);
+  #modal .al-row.done .al-nm,#modal .al-row.done .al-vl{text-decoration:line-through;color:var(--txt-3);
     transition:color .2s var(--ease-out);}
   .al-row.gone{opacity:0;transform:translateX(26px);max-height:0;
     padding-top:0;padding-bottom:0;border-top-width:0;}
@@ -772,7 +780,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-09-01 · tela de realizado v17";
+const APP_VERSION="2026-09-01 · ajustes do realizado v18";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -2367,7 +2375,7 @@ function renderPagoView(){
 
   const rows=lista.length ? lista.map(t=>{
     const d=effDate(t);
-    return `<div class="al-row pg-row ${txRowCls(t)}" data-pg="${t.id}">
+    return `<div class="al-row pg-row ${txRowCls(t)} ${isPago(t)?"done":""}" data-pg="${t.id}">
       ${badge(t.type,"sm")}
       <div class="al-info">
         <div class="al-nm">${esc(t.desc||TYPE_WORD[t.type])}</div>
@@ -2420,11 +2428,17 @@ function renderPagoView(){
       el.dataset.busy="1";
       const t=state.tx.find(x=>x.id===el.dataset.pg);
       const novo=!isPago(t);
+      // mesma animação do aviso de abertura: a caixa preenche, o ✓ é desenhado
       chk.classList.toggle("done",novo); chk.setAttribute("aria-checked",String(novo));
       el.classList.toggle("done",novo);
       setPago(t,novo); persist();
-      // redesenha depois da animação, para o ✓ ser visto
-      setTimeout(()=>{ refresh(); },380);
+      // se o item deixar de casar com o filtro, sai deslizando antes do redesenho
+      const somem = (pagoFiltro==="pendentes"&&novo) || (pagoFiltro==="pagos"&&!novo)
+                 || (pagoFiltro==="atrasados"&&novo);
+      setTimeout(()=>{
+        if(somem){ el.classList.add("gone"); setTimeout(refresh,300); }
+        else refresh();
+      },430);
     };
     el.onclick=()=>{ if(el.dataset.busy) return; openTxSheet(el.dataset.pg); };
   });
