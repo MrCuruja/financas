@@ -305,10 +305,14 @@
   .pg-line{display:flex;justify-content:space-between;align-items:baseline;font-size:16px;
     font-weight:700;color:var(--txt-2);margin-bottom:9px;}
   .pg-line b{font-size:22px;font-weight:800;color:var(--txt);letter-spacing:-.4px;}
-  /* o .bar genérico já tem 26px; aqui a barra é o elemento principal do cabeçalho */
-  .pg-head .bar{height:34px;border-radius:20px;background:var(--line-strong);
-    border:none;overflow:hidden;flex:none;}
-  .pg-head .bar i{display:block;height:100%;border-radius:20px;
+  /* Barra de progresso "cheia": trilho cinza sólido, sem contorno.
+     Vale para o cabeçalho da tela de realizado e para os cards de cálculo
+     (realizado e economizado). NÃO se aplica às linhas mensais de .eco-barline,
+     que são muitas e ficariam altas demais. */
+  .pg-head .bar,.calc .bar{height:34px;border-radius:20px;background:var(--line-strong);
+    border:none;overflow:hidden;}
+  .pg-head .bar{flex:none;}
+  .pg-head .bar i,.calc .bar i{display:block;height:100%;border-radius:20px;
     transition:width var(--dur) var(--ease-out);}
   .pg-sub{font-size:14px;font-weight:600;color:var(--txt-2);margin-top:8px;}
   .pg-row{cursor:pointer;}
@@ -783,7 +787,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-09-01 · barra, checkbox e filtros v19";
+const APP_VERSION="2026-09-01 · barras dos cards v20";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
