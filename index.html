@@ -287,7 +287,9 @@
     transform:translateY(-14px) scale(.97);opacity:.6;
     transition:transform var(--dur) var(--ease-ios),opacity var(--dur) var(--ease-out);}
   #searchview.show .sq-panel{transform:none;opacity:1;}
-  .sq-top{display:flex;align-items:center;gap:10px;padding:12px 14px 10px;background:var(--surface);}
+  /* .sq-results tem flex:1 com base 0, então NÃO encolhe: sem flex:none aqui, todo o
+     encolhimento do painel caía sobre o cabeçalho e os chips, que ficavam espremidos. */
+  .sq-top{flex:none;display:flex;align-items:center;gap:10px;padding:12px 14px 10px;background:var(--surface);}
   .sq-close{flex:0 0 auto;border:none;background:none;color:var(--txt-2);font-size:16px;font-weight:700;padding:6px 2px;}
   /* a lista rola DENTRO do painel: os filtros ficam sempre visíveis */
   .sq-results{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);}
@@ -298,12 +300,15 @@
   #pagoview.show{transform:translateX(0);}
   .pg-screen{max-width:460px;margin:0 auto;height:100dvh;border-radius:0;box-shadow:none;
     transform:none;opacity:1;background:var(--bg);}
-  .pg-head{padding:14px 20px 16px;background:var(--surface);border-bottom:1px solid var(--line);}
+  .pg-screen>.topbar,.pg-screen>.perf-year{flex:none;}
+  .pg-head{flex:none;padding:14px 20px 16px;background:var(--surface);border-bottom:1px solid var(--line);}
   .pg-line{display:flex;justify-content:space-between;align-items:baseline;font-size:16px;
     font-weight:700;color:var(--txt-2);margin-bottom:9px;}
   .pg-line b{font-size:22px;font-weight:800;color:var(--txt);letter-spacing:-.4px;}
-  .pg-head .bar{height:16px;border-radius:10px;background:var(--line-strong);overflow:hidden;}
-  .pg-head .bar i{display:block;height:100%;border-radius:10px;
+  /* o .bar genérico já tem 26px; aqui a barra é o elemento principal do cabeçalho */
+  .pg-head .bar{height:34px;border-radius:20px;background:var(--line-strong);
+    border:none;overflow:hidden;flex:none;}
+  .pg-head .bar i{display:block;height:100%;border-radius:20px;
     transition:width var(--dur) var(--ease-out);}
   .pg-sub{font-size:14px;font-weight:600;color:var(--txt-2);margin-top:8px;}
   .pg-row{cursor:pointer;}
@@ -323,15 +328,14 @@
   .sq-box input::-webkit-search-cancel-button{display:none;}
   .sq-clear{width:24px;height:24px;border-radius:50%;border:none;background:var(--line-strong);color:var(--txt-2);
     font-size:13px;font-weight:800;flex:0 0 auto;}
-  .sq-chips{display:flex;gap:7px;overflow-x:auto;padding:0 14px 9px;scrollbar-width:none;background:var(--surface);}
+  .sq-chips{flex:none;display:flex;gap:7px;overflow-x:auto;padding:0 14px 9px;scrollbar-width:none;background:var(--surface);}
   .sq-chips::-webkit-scrollbar{display:none;}
   .sq-chip{flex:0 0 auto;padding:7px 13px;border-radius:30px;border:1.5px solid var(--line-strong);
     background:var(--surface);color:var(--txt-2);font-size:14px;font-weight:700;white-space:nowrap;
-    transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),
-      border-color var(--dur-fast) var(--ease-out);}
+    transition:none;}
   .sq-chip.sel{background:var(--txt);border-color:var(--txt);color:var(--surface);}
-  .sq-chip:active{transform:scale(.95);}
-  .sq-sum{display:flex;justify-content:space-between;align-items:baseline;padding:9px 18px;
+  .sq-chip:active{transform:none;}
+  .sq-sum{flex:none;display:flex;justify-content:space-between;align-items:baseline;padding:9px 18px;
     font-size:14px;font-weight:700;color:var(--txt-2);background:var(--surface);
     border-top:1px solid var(--line);}
   .sq-mes{padding:14px 20px 7px;font-size:13px;font-weight:800;color:var(--txt-3);
@@ -398,17 +402,16 @@
   .al-chk{width:30px;height:30px;flex:0 0 auto;padding:0;border-radius:9px;
     border:2px solid var(--txt-3);background:var(--surface);
     display:flex;align-items:center;justify-content:center;
-    transition:background-color .2s var(--ease-out),border-color .2s var(--ease-out),
-      transform .26s var(--ease-ios);}
+    transition:background-color .22s var(--ease-out),border-color .22s var(--ease-out);}
   .al-chk svg{width:17px;height:17px;display:block;fill:none;stroke:#fff;stroke-width:3.4;
     stroke-linecap:round;stroke-linejoin:round;}
   .al-chk svg path{stroke-dasharray:22;stroke-dashoffset:22;
     transition:stroke-dashoffset .22s var(--ease-out);}
   .al-chk:active{transform:scale(.88);}
-  .al-chk.done{background:var(--green);border-color:var(--green);animation:chkPop .34s var(--ease-ios);}
+  .al-chk.done{background:var(--green);border-color:var(--green);}
   .al-row.rec .al-nm{color:var(--txt);}
   .al-chk.done svg path{stroke-dashoffset:0;transition:stroke-dashoffset .26s var(--ease-out) .06s;}
-  @keyframes chkPop{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
+
 
   .al-row{max-height:78px;overflow:hidden;
     transition:opacity .28s var(--ease-out),transform .28s var(--ease-ios),
@@ -780,7 +783,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-09-01 · ajustes do realizado v18";
+const APP_VERSION="2026-09-01 · barra, checkbox e filtros v19";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
