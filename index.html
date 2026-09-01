@@ -291,6 +291,22 @@
   .sq-close{flex:0 0 auto;border:none;background:none;color:var(--txt-2);font-size:16px;font-weight:700;padding:6px 2px;}
   /* a lista rola DENTRO do painel: os filtros ficam sempre visíveis */
   .sq-results{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);}
+
+  /* ---------- Realizado ---------- */
+  #pagoview{display:none;position:fixed;inset:0;z-index:55;background:var(--surface);overflow:hidden;
+    transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
+  #pagoview.show{transform:translateX(0);}
+  .pg-screen{max-width:460px;margin:0 auto;height:100dvh;border-radius:0;box-shadow:none;
+    transform:none;opacity:1;background:var(--bg);}
+  .pg-head{padding:14px 20px 16px;background:var(--surface);border-bottom:1px solid var(--line);}
+  .pg-line{display:flex;justify-content:space-between;align-items:baseline;font-size:16px;
+    font-weight:700;color:var(--txt-2);margin-bottom:9px;}
+  .pg-line b{font-size:22px;font-weight:800;color:var(--txt);letter-spacing:-.4px;}
+  .pg-head .bar{height:9px;border-radius:6px;background:var(--line-strong);overflow:hidden;}
+  .pg-head .bar i{display:block;height:100%;border-radius:6px;}
+  .pg-sub{font-size:14px;font-weight:600;color:var(--txt-2);margin-top:8px;}
+  .pg-row{cursor:pointer;}
+  .pg-row.done .al-nm,.pg-row.done .al-vl{opacity:.5;}
   .search-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--bg);display:flex;flex-direction:column;}
   .sq-box{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:14px;
     background:var(--surface);border:1px solid var(--line-strong);}
@@ -702,7 +718,9 @@
     /* ---------- Detalhes no modo horizontal (dia, movimentações e cards do Totais) ---------- */
     body.wide #dayview,body.wide #movview,body.wide #tagview,body.wide #perfview,
     body.wide #ecoview,body.wide #custoview,body.wide #mediaview,body.wide #cardview,
-    body.wide #searchview,body.wide #faturaview{left:236px;background:var(--bg);}
+    body.wide #searchview,body.wide #faturaview,body.wide #pagoview{left:236px;background:var(--bg);}
+    body.wide .pg-screen{max-width:760px;}
+    body.wide #pagoview .sq-chips{flex-wrap:wrap;overflow-x:visible;}
     /* No PC não dá para arrastar os chips com o mouse: alarga o painel e deixa
        que eles quebrem em várias linhas, em vez de rolar na horizontal. */
     body.wide #searchview{background:rgba(0,0,0,.34);padding:40px 24px 24px;}
@@ -742,6 +760,7 @@
 <div id="movview"></div>
 <div id="tagview"></div>
 <div id="searchview"></div>
+<div id="pagoview"></div>
 <div id="faturaview"></div>
 <div id="netbar"></div>
 <div id="cloudload"><div class="spinner"></div><div style="font-weight:700;color:var(--txt-2)">Sincronizando…</div></div>
@@ -753,7 +772,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-08-31 · sem seleção de texto v16";
+const APP_VERSION="2026-09-01 · tela de realizado v17";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -1032,8 +1051,9 @@ function isPago(t){
   if(t.pago===false) return false;
   return effDate(t)<pagoCutoff();
 }
-/* pendente e já vencido */
-function isAtrasado(t){ return !isPago(t) && t.type!=="previsao" && effDate(t)<hojeStr(); }
+/* Pendente e já vencido. Só vale para os tipos acompanhados manualmente:
+   diário, economia e previsão nunca são "atrasados". */
+function isAtrasado(t){ return exigePagamento(t) && !isPago(t) && effDate(t)<hojeStr(); }
 function setPago(t,v){
   if(!exigePagamento(t)){ delete t.pago; return; }   // não se marca diário/economia
   // grava só quando difere do que o corte já indicaria, para não encher o documento
@@ -1311,8 +1331,7 @@ function renderTotais(){
   // teclado, porque o foco do input acontece 300ms depois.
   const _pv=document.getElementById("prevRow");
   if(_pv){ _pv.style.cursor="pointer"; _pv.onclick=openForecastSheet; }
-  const _pg=document.getElementById("pagoCard"); if(_pg)_pg.onclick=()=>{
-    searchQ=""; searchType="todas"; searchStatus=atrasados.length?"atrasados":"pendentes"; openSearch(); };
+  const _pg=document.getElementById("pagoCard"); if(_pg)_pg.onclick=openPagoView;
 }
 function cardsChips(){
   if(!state.cards.length) return `<span style="color:var(--txt-3);font-weight:700">cadastre no menu ›</span>`;
@@ -1970,6 +1989,7 @@ function refresh(){
   if(cardviewOpen) renderCardsView();
   if(faturaOpen) renderFatura();
   if(searchOpen) renderSearch();
+  if(pagoOpen) renderPagoView();
   if(perfOpen) renderPerf();
   if(ecoOpen) renderEco();
   if(custoOpen) renderCusto();
@@ -2297,6 +2317,121 @@ function renderFatura(){
   requestAnimationFrame(()=>g.classList.add("show"));
 }
 
+/* =================== Realizado (pagamentos do mês) =================== */
+let pagoOpen=false, pagoY=0, pagoM=0, pagoFiltro="todos";
+
+function openPagoView(){
+  pagoOpen=true; pagoY=view.y; pagoM=view.m; pagoFiltro="todos"; renderPagoView();
+  navPush(()=>{ pagoOpen=false; const g=document.getElementById("pagoview");
+    g.classList.remove("show");
+    setTimeout(()=>{ if(!pagoOpen){ g.style.display="none"; g.innerHTML=""; } },460); });
+}
+function closePagoView(){ if(pagoOpen) navBack(); }
+function pagoShift(d){
+  let m=pagoM+d, y=pagoY;
+  y+=Math.floor(m/12); m=((m%12)+12)%12;
+  pagoY=y; pagoM=m; renderPagoView();
+}
+/* Só os tipos acompanhados manualmente. Diário e economia não entram: são
+   sempre realizados, não há o que marcar. */
+function pagoItens(y,m){
+  return monthTx(y,m).filter(exigePagamento)
+    .sort((a,b)=>effDate(a).localeCompare(effDate(b))||b.amount-a.amount);
+}
+
+function renderPagoView(){
+  const g=document.getElementById("pagoview");
+  const _pp=g.querySelector(".sq-results"); const _py=_pp?_pp.scrollTop:0;
+  g.style.display="block";
+  const itens=pagoItens(pagoY,pagoM);
+
+  const saidas=itens.filter(t=>t.type!=="entrada");
+  const entradas=itens.filter(t=>t.type==="entrada");
+  const sTot=saidas.reduce((a,t)=>a+t.amount,0);
+  const sPago=saidas.filter(isPago).reduce((a,t)=>a+t.amount,0);
+  const eTot=entradas.reduce((a,t)=>a+t.amount,0);
+  const eRec=entradas.filter(isPago).reduce((a,t)=>a+t.amount,0);
+  const atrasados=itens.filter(isAtrasado);
+  const pct=sTot>0?(sPago/sTot*100):0;
+
+  const conta={
+    todos:itens.length,
+    pagos:itens.filter(isPago).length,
+    pendentes:itens.filter(t=>!isPago(t)).length,
+    atrasados:atrasados.length
+  };
+  const lista=itens.filter(t=>
+    pagoFiltro==="todos" ? true :
+    pagoFiltro==="pagos" ? isPago(t) :
+    pagoFiltro==="pendentes" ? !isPago(t) : isAtrasado(t));
+
+  const rows=lista.length ? lista.map(t=>{
+    const d=effDate(t);
+    return `<div class="al-row pg-row ${txRowCls(t)}" data-pg="${t.id}">
+      ${badge(t.type,"sm")}
+      <div class="al-info">
+        <div class="al-nm">${esc(t.desc||TYPE_WORD[t.type])}</div>
+        <div class="al-dt">${d.slice(8,10)}/${d.slice(5,7)}${t.card?" · "+esc(t.card):""}${t.tag?" · "+esc(t.tag):""}${isAtrasado(t)?' · <b style="color:var(--saida)">atrasado</b>':""}</div>
+      </div>
+      <div class="al-vl"${t.type==="entrada"?' style="color:var(--green)"':""}>${t.type==="entrada"?"+":""}${brl(t.amount)}</div>
+      <button class="al-chk ${isPago(t)?'done':''}" role="checkbox" aria-checked="${isPago(t)}"
+        aria-label="${t.type==="entrada"?"marcar como recebido":"marcar como pago"}">
+        <svg viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.6L19 7.2"/></svg>
+      </button>
+    </div>`;
+  }).join("") : `<div class="empty">${itens.length?"Nada neste filtro.":"Nenhum pagamento neste mês."}</div>`;
+
+  const chip=(k,lbl)=>`<button class="sq-chip ${k===pagoFiltro?'sel':''}" data-pf="${k}">${lbl}${conta[k]?` <span style="opacity:.6">${conta[k]}</span>`:""}</button>`;
+
+  g.innerHTML=`<div class="sq-panel pg-screen">
+    <div class="topbar">
+      <button class="arrow dv-plain" id="pgBack">${IC_BACK}</button>
+      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">realizado</div>
+      <div style="width:34px"></div>
+    </div>
+    <div class="perf-year">
+      <button class="arrow" id="pgPrev">${IC_PREV}</button>
+      <div class="yr">${MN_FULL[pagoM]} de ${pagoY}</div>
+      <button class="arrow" id="pgNext">${IC_NEXT}</button>
+    </div>
+    <div class="pg-head">
+      <div class="pg-line"><span>pago</span><span><b>${brl(sPago)}</b> de ${brl(sTot)}</span></div>
+      <div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%;background:var(--green)"></i></div>
+      <div class="pg-sub">${atrasados.length
+        ? `<b style="color:var(--saida)">${atrasados.length} atrasado${atrasados.length>1?"s":""}</b> · ${brl(sTot-sPago)} em aberto`
+        : (sTot>0?`${pct.toFixed(0)}% pago · ${brl(sTot-sPago)} em aberto`:"nada a pagar neste mês")}</div>
+      ${eTot>0?`<div class="pg-line" style="margin-top:12px"><span>recebido</span><span style="color:var(--green)"><b>${brl(eRec)}</b> de ${brl(eTot)}</span></div>`:""}
+    </div>
+    <div class="sq-chips">
+      ${chip("todos","tudo")}${chip("pendentes","pendentes")}${chip("atrasados","atrasados")}${chip("pagos","pagos")}
+    </div>
+    <div class="sq-results">${rows}</div>
+  </div>`;
+
+  onTap(document.getElementById("pgBack"), closePagoView);
+  onTap(document.getElementById("pgPrev"), ()=>pagoShift(-1));
+  onTap(document.getElementById("pgNext"), ()=>pagoShift(1));
+  g.querySelectorAll("[data-pf]").forEach(el=>onTap(el, ()=>{ pagoFiltro=el.dataset.pf; renderPagoView(); }));
+  g.querySelectorAll("[data-pg]").forEach(el=>{
+    const chk=el.querySelector(".al-chk");
+    chk.onclick=e=>{
+      e.stopPropagation();
+      if(el.dataset.busy) return;
+      el.dataset.busy="1";
+      const t=state.tx.find(x=>x.id===el.dataset.pg);
+      const novo=!isPago(t);
+      chk.classList.toggle("done",novo); chk.setAttribute("aria-checked",String(novo));
+      el.classList.toggle("done",novo);
+      setPago(t,novo); persist();
+      // redesenha depois da animação, para o ✓ ser visto
+      setTimeout(()=>{ refresh(); },380);
+    };
+    el.onclick=()=>{ if(el.dataset.busy) return; openTxSheet(el.dataset.pg); };
+  });
+  const _n=g.querySelector(".sq-results"); if(_n) _n.scrollTop=_py;
+  requestAnimationFrame(()=>g.classList.add("show"));
+}
+
 /* =================== Busca =================== */
 let searchOpen=false, searchQ="", searchType="todas", searchStatus="todos";
 
@@ -2401,8 +2536,11 @@ function renderSearch(){
 }
 
 /* rótulo curto de status usado nas listas */
-function txRowCls(t){ return isAtrasado(t)?"pend atraso":(isPago(t)?"":"pend"); }
-/* (diário e economia são sempre pagos, então nunca recebem a classe "pend") */
+function txRowCls(t){
+  if(t.type==="previsao") return "pend";              // projeção: sempre esmaecida
+  if(!exigePagamento(t)) return "";                   // diário/economia: sem marcação visual
+  return isAtrasado(t)?"pend atraso":(isPago(t)?"":"pend");
+}
 function statusLabel(t){
   if(t.type==="previsao") return "previsão";
   if(!exigePagamento(t)) return seriesGlyph(t)+TYPE_WORD[t.type];  // diário/economia
@@ -3220,12 +3358,12 @@ function onTap(el, fn){
 }
 
 function closeAllOverlays(){
-  ["dayview","movview","tagview","perfview","ecoview","custoview","mediaview","cardview","searchview","faturaview"].forEach(id=>{
+  ["dayview","movview","tagview","perfview","ecoview","custoview","mediaview","cardview","searchview","faturaview","pagoview"].forEach(id=>{
     const g=document.getElementById(id);
     if(g){ g.classList.remove("show"); g.style.display=""; g.innerHTML=""; }
   });
   const bd=document.getElementById("backdrop"); if(bd) bd.classList.remove("open");
-  dayOpen=null; perfOpen=ecoOpen=custoOpen=mediaOpen=movOpen=cardviewOpen=tagOpen=searchOpen=faturaOpen=false; sheetOpen=false;
+  dayOpen=null; perfOpen=ecoOpen=custoOpen=mediaOpen=movOpen=cardviewOpen=tagOpen=searchOpen=faturaOpen=pagoOpen=false; sheetOpen=false;
   navStack=[];
 }
 
