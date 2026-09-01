@@ -36,6 +36,45 @@
     --done:#37b24d;        /* dia concluído */
     --shadow:0 1px 3px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.05);
     --radius:20px;
+
+    /* ---------- Escala tipográfica ----------
+       Um degrau por papel, não por tela. Todo tamanho de texto do app sai
+       daqui; a única coisa que muda no iPad/PC é o valor destes tokens
+       (ver o bloco @media lá embaixo). Assim nada fica fora de proporção. */
+    --t-micro:11px;      /* etiquetas minúsculas (aberta/fechada/paga) */
+    --t-cap:12.5px;      /* legendas de seção, cabeçalho de tabela */
+    --t-meta:13.5px;     /* datas, dicas, subtítulos de linha */
+    --t-sub:15px;        /* texto secundário, títulos de seção */
+    --t-body:16.5px;     /* corpo: linhas da grade, botões de opção */
+    --t-row:18px;        /* título e valor de uma linha de lista */
+    --t-strong:20px;     /* números em destaque dentro de um card */
+    --t-block:22px;      /* título de bloco */
+    --t-screen:25px;     /* título de tela / de sheet */
+    --t-month:28px;      /* mês no cabeçalho */
+    --t-display:34px;    /* total da fatura */
+    --t-input:44px;      /* campo de valor */
+    --t-hero:52px;       /* número gigante (economizado do ano) */
+
+    /* ---------- Escala de ícones ----------
+       Cada degrau acompanha um degrau de texto: --ic-md anda com --t-body,
+       --ic-lg com --t-row, e assim por diante. */
+    --ic-xs:13px;
+    --ic-sm:17px;
+    --ic-md:22px;
+    --ic-lg:25px;
+    --ic-xl:29px;
+
+    /* selos redondos de tipo (entrada/saída/diário/…) */
+    --bd:26px;    --bd-fs:13px;    --bd-ic:15px;
+    --bd-sm:22px; --bd-sm-fs:11.5px; --bd-sm-ic:13px;
+    --bd-tb:20px; --bd-tb-fs:10.5px; --bd-tb-ic:11px;
+
+    /* alturas de controle */
+    --hit:44px;       /* alvo mínimo de toque */
+    --bar:26px;       /* barra de progresso dentro de um card */
+    --bar-lg:30px;    /* barra de progresso de cabeçalho */
+    --tbl-row:46px;   /* altura da linha na tabela do modo horizontal */
+    --t-tbl:14px;     /* texto da tabela do modo horizontal */
     --safe-top:env(safe-area-inset-top,0px);
     --safe-bot:env(safe-area-inset-bottom,0px);
     /* animação estilo iOS */
@@ -84,35 +123,39 @@
     border-bottom:1px solid var(--line);
     display:flex;align-items:center;justify-content:space-between;gap:8px;
   }
-  .cal-badge{width:44px;height:44px;border-radius:12px;background:var(--surface);
+  .cal-badge{width:var(--hit);height:var(--hit);border-radius:12px;background:var(--surface);
     border:1px solid var(--line-strong);position:relative;display:flex;align-items:flex-end;
-    justify-content:center;padding-bottom:5px;font-weight:800;font-size:18px;overflow:hidden;flex:0 0 auto;}
+    justify-content:center;padding-bottom:5px;font-weight:800;font-size:var(--t-row);overflow:hidden;flex:0 0 auto;}
+  .cal-badge .hj{font-size:var(--t-cap);font-weight:800;}
   .cal-badge::before{content:"";position:absolute;top:0;left:0;right:0;height:11px;background:var(--accent);}
   .cal-badge::after{content:"";position:absolute;top:2px;left:9px;width:4px;height:6px;border-radius:2px;
     background:var(--txt);box-shadow:18px 0 0 var(--txt);}
-  .month-nav{display:flex;align-items:center;gap:14px;}
-  .month-nav .arrow{color:var(--txt-2);width:32px;height:32px;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .month-nav{display:flex;align-items:center;gap:12px;}
+  .month-nav .arrow{color:var(--txt-2);width:38px;height:38px;line-height:1;display:flex;align-items:center;justify-content:center;}
   /* traço das setas: 2.6 contra o ~1px dos glifos de texto */
-  .arrow svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;
+  .arrow svg{width:var(--ic-md);height:var(--ic-md);display:block;fill:none;stroke:currentColor;
     stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;}
-  .month-label{font-size:27px;font-weight:800;letter-spacing:-.5px;min-width:118px;text-align:center;}
+  .month-label{font-size:var(--t-month);font-weight:800;letter-spacing:-.5px;min-width:112px;text-align:center;}
+  /* mês menor usado nos cabeçalhos de dia / movimentações / tag */
+  .month-label.mini{font-size:var(--t-block);min-width:92px;}
   /* atalho de busca no canto superior direito (ocupa o lugar do antigo botão decorativo) */
-  .topbar-search{width:44px;height:44px;flex:0 0 auto;border:none;background:none;padding:0;
+  .topbar-search{width:var(--hit);height:var(--hit);flex:0 0 auto;border:none;background:none;padding:0;
     display:flex;align-items:center;justify-content:center;color:var(--txt);}
-  .topbar-search svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;
+  .topbar-search svg{width:var(--ic-md);height:var(--ic-md);display:block;fill:none;stroke:currentColor;
     stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
   .topbar-search:active{transform:scale(.9);}
 
   /* ---------- Filter bar (saldos) ---------- */
   .subbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 8px;
-    color:var(--txt-2);font-size:16px;}
+    color:var(--txt-2);font-size:var(--t-body);}
   .filter-pill{display:inline-flex;align-items:center;gap:10px;padding:9px 16px;border:1px solid var(--line-strong);
-    border-radius:30px;background:var(--surface);font-weight:800;color:var(--txt);font-size:17px;}
+    border-radius:30px;background:var(--surface);font-weight:800;color:var(--txt);font-size:var(--t-body);}
   .subbar .filter-pill{width:210px;justify-content:center;}
-  .filter-pill .chev{color:var(--txt-3);font-size:13px;}
-  .badge{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
-    color:#fff;font-weight:800;font-size:13px;flex:0 0 auto;}
-  .badge svg{width:15px;height:15px;}
+  .filter-pill .chev{color:var(--txt-3);font-size:var(--t-meta);}
+  .filter-pill .ck{margin-left:auto;color:var(--accent);font-weight:800;font-size:var(--t-block);}
+  .badge{width:var(--bd);height:var(--bd);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:var(--bd-fs);flex:0 0 auto;line-height:1;}
+  .badge svg{width:var(--bd-ic);height:var(--bd-ic);}
   .badge.entrada{background:var(--entrada);} .badge.saida{background:var(--saida);}
   .badge.diario{background:var(--diario);} .badge.economia{background:var(--economia);}
   /* previsão: mesmo "D" do diário, mas em contorno tracejado — valor projetado, não real */
@@ -138,9 +181,9 @@
   /* saldos rows */
   .balrow{display:grid;grid-template-columns:46px 1fr 150px;align-items:stretch;border-bottom:1px solid var(--line);
     background:var(--surface);min-height:54px;position:relative;}
-  .balrow .day{display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;color:var(--txt);position:relative;}
+  .balrow .day{display:flex;align-items:center;justify-content:center;font-size:var(--t-body);font-weight:600;color:var(--txt);position:relative;}
   .balrow .day.today{background:var(--txt);color:var(--surface);}
-  .balrow .amt{overflow:hidden;font-size:17px;font-weight:600;}
+  .balrow .amt{overflow:hidden;font-size:var(--t-body);font-weight:600;}
   .balrow .amt .val{margin-left:auto;text-align:right;}
   .balrow .amt.zero{color:var(--txt-3);} .balrow .amt.zero .badge{background:#d2d2d8;}
   [data-theme="dark"] .balrow .amt.zero .badge{background:#3a3a3d;}
@@ -148,7 +191,7 @@
   .amt-slide{display:flex;align-items:center;gap:12px;padding:0 6px 0 4px;height:100%;min-width:0;
     transform:translateX(var(--sldx,0));opacity:var(--sldo,1);}
   .saldos-scroll.sliding .amt-slide{transition:transform var(--dur) var(--ease-ios),opacity var(--dur) var(--ease-ios);}
-  .balrow .bal{display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font-size:16.5px;font-weight:600;
+  .balrow .bal{display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font-size:var(--t-body);font-weight:600;
     white-space:nowrap;border-left:1px solid var(--line);}
 
   /* todas grouped */
@@ -157,13 +200,13 @@
     border-top:1px solid var(--line);}
   .subrow:first-child{border-top:none;}
   .subrow .lead{display:flex;align-items:center;justify-content:center;position:relative;align-self:stretch;}
-  .subrow .lead .n{font-size:17px;font-weight:600;}
+  .subrow .lead .n{font-size:var(--t-body);font-weight:600;}
   .subrow .lead .n.today{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;
     border-radius:999px;background:var(--txt);color:var(--surface);font-weight:800;}
-  .subrow .amt{overflow:hidden;font-size:17px;font-weight:600;}
+  .subrow .amt{overflow:hidden;font-size:var(--t-body);font-weight:600;}
   .subrow .amt .val{margin-left:auto;}
   .subrow .amt.zero{color:var(--txt-3);}
-  .subrow .bal{align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font-weight:700;font-size:16px;white-space:nowrap;}
+  .subrow .bal{align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font-weight:700;font-size:var(--t-body);white-space:nowrap;}
 
   /* dia concluído (marcação manual) — só o canto verde no número do dia */
   .balrow .day[data-done],.subrow .lead[data-done]{cursor:pointer;}
@@ -171,48 +214,52 @@
     content:"";position:absolute;top:0;left:0;border-style:solid;border-width:16px 16px 0 0;
     border-color:var(--done) transparent transparent transparent;}
   .done-toggle{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;border-radius:14px;
-    background:var(--surface-2);border:1px solid var(--line-strong);color:var(--txt);font-size:16px;font-weight:700;}
+    background:var(--surface-2);border:1px solid var(--line-strong);color:var(--txt);font-size:var(--t-body);font-weight:700;}
   .done-toggle .dt-box{width:24px;height:24px;flex:0 0 auto;border-radius:7px;border:2px solid var(--txt-3);
-    display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:900;}
+    display:flex;align-items:center;justify-content:center;font-size:var(--t-sub);color:#fff;font-weight:900;}
   .done-toggle.on{border-color:var(--done);color:var(--done);}
   .done-toggle.on .dt-box{background:var(--done);border-color:var(--done);}
 
   /* modal de escolha (repetidas) */
-  #modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:26px;
+  #modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;
     background:rgba(0,0,0,.42);opacity:0;visibility:hidden;pointer-events:none;
     transition:opacity var(--dur) var(--ease-out),visibility 0s linear var(--dur);}
   #modal.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity var(--dur) var(--ease-out);}
   .modal-card{width:100%;max-width:400px;background:var(--surface);border-radius:26px;padding:26px 22px 18px;box-shadow:var(--shadow);
     transform:scale(.9) translateY(10px);opacity:0;transition:transform var(--dur) var(--ease-ios),opacity var(--dur) var(--ease-out);}
   #modal.open .modal-card{transform:none;opacity:1;}
-  .modal-title{font-size:25px;font-weight:800;margin-bottom:20px;color:var(--txt);}
+  .modal-title{font-size:var(--t-screen);font-weight:800;margin-bottom:20px;color:var(--txt);}
   .modal-title+.modal-note{margin-top:-12px;}
-  .modal-note{font-size:15px;font-weight:600;line-height:1.45;color:var(--txt-2);margin-bottom:20px;}
+  .modal-note{font-size:var(--t-sub);font-weight:600;line-height:1.45;color:var(--txt-2);margin-bottom:20px;}
   .modal-opt{display:block;width:100%;padding:16px;border-radius:30px;border:1.5px solid var(--line-strong);
-    background:var(--surface);color:var(--txt);font-size:17px;font-weight:800;margin-bottom:14px;}
+    background:var(--surface);color:var(--txt);font-size:var(--t-body);font-weight:800;margin-bottom:14px;}
   .modal-opt.danger{color:var(--saida);border-color:var(--saida);}
-  .modal-cancel{display:block;width:100%;padding:12px;background:none;color:var(--txt-2);font-size:17px;font-weight:800;}
+  .modal-cancel{display:block;width:100%;padding:12px;background:none;color:var(--txt-2);font-size:var(--t-body);font-weight:800;}
 
   /* ---------- Cards / lists (totais, tags, menu) ---------- */
-  .section-title{padding:22px 20px 8px;color:var(--txt-2);font-size:16px;font-weight:700;}
+  .section-title{padding:22px 20px 8px;color:var(--txt-2);font-size:var(--t-sub);font-weight:700;}
   .card{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
   .rowitem{display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
   .rowitem:last-child{border-bottom:none;}
-  .rowitem .label{font-size:18px;font-weight:700;}
-  .rowitem .value{margin-left:auto;font-size:18px;font-weight:700;text-align:right;}
-  .rowitem .sub{font-size:14px;color:var(--txt-2);font-weight:600;}
+  .rowitem .label{font-size:var(--t-row);font-weight:700;}
+  .rowitem .value{margin-left:auto;font-size:var(--t-row);font-weight:700;text-align:right;}
+  .rowitem .sub{font-size:var(--t-meta);color:var(--txt-2);font-weight:600;}
+  .rowitem .chev{color:var(--txt-3);font-weight:800;font-size:var(--t-strong);}
 
   .calc{padding:20px;border-bottom:1px solid var(--line);background:var(--surface);cursor:pointer;}
   .calc .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
-  .calc .name{font-size:20px;font-weight:800;}
-  .calc .big{font-size:20px;font-weight:800;text-align:right;}
-  .calc .cap{font-size:15px;color:var(--txt-2);text-align:right;margin-top:2px;font-weight:600;}
+  .calc .name{font-size:var(--t-strong);font-weight:800;}
+  .calc .big{font-size:var(--t-strong);font-weight:800;text-align:right;}
+  .calc .cap{font-size:var(--t-sub);color:var(--txt-2);text-align:right;margin-top:2px;font-weight:600;}
+  /* seta “›” do título de cada card de cálculo */
+  .calc-arrow{color:var(--txt-3);font-weight:800;font-size:var(--t-strong);}
+  .calc-note{color:var(--txt-2);font-weight:700;font-size:var(--t-sub);}
   .chips{display:flex;align-items:center;gap:6px;margin-top:12px;flex-wrap:wrap;}
-  .chips .op{color:var(--txt-3);font-weight:800;font-size:17px;}
-  .badge.sm{width:24px;height:24px;font-size:12px;}
-  .badge.sm svg{width:13px;height:13px;}
+  .chips .op{color:var(--txt-3);font-weight:800;font-size:var(--t-body);}
+  .badge.sm{width:var(--bd-sm);height:var(--bd-sm);font-size:var(--bd-sm-fs);}
+  .badge.sm svg{width:var(--bd-sm-ic);height:var(--bd-sm-ic);}
   .badge.ring{background:var(--surface);border:2px dashed var(--diario);color:var(--diario);}
-  .bar{height:26px;border:2px solid var(--economia);border-radius:20px;flex:1;overflow:hidden;position:relative;background:transparent;}
+  .bar{height:var(--bar);border:2px solid var(--economia);border-radius:20px;flex:1;overflow:hidden;position:relative;background:transparent;}
   .bar > i{position:absolute;left:0;top:0;bottom:0;background:var(--economia);border-radius:20px;}
 
   /* tag color dot */
@@ -220,28 +267,33 @@
   .tagdot::after{content:"";position:absolute;right:-7px;top:0;border-style:solid;border-width:15px 0 15px 8px;border-color:transparent;}
 
   /* menu */
-  .menu-row{display:flex;align-items:center;gap:14px;padding:17px 20px;border-bottom:1px solid var(--line);background:var(--surface);font-size:18px;font-weight:600;}
-  .menu-row .chev{margin-left:auto;color:var(--txt-3);font-size:20px;}
-  .menu-ic{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--bg);flex:0 0 auto;}
-  .menu-ic svg{width:18px;height:18px;stroke:var(--txt);}
+  .menu-row{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:var(--surface);font-size:var(--t-body);font-weight:600;}
+  .menu-row .chev{margin-left:auto;color:var(--txt-3);font-size:var(--t-strong);}
+  /* o valor à direita empurrava o rótulo e fazia "Controle de pagamentos"
+     quebrar em duas linhas: um degrau menor e sem quebra resolve. */
+  .menu-row .mval{margin-left:auto;font-weight:800;color:var(--txt-2);font-size:var(--t-meta);
+    white-space:nowrap;flex:0 0 auto;}
+  .menu-row .mval+.chev{margin-left:8px;}
+  .menu-ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--bg);flex:0 0 auto;}
+  .menu-ic svg{width:var(--ic-sm);height:var(--ic-sm);stroke:var(--txt);}
 
-  .empty{text-align:center;color:var(--txt-2);padding:70px 30px;font-size:17px;line-height:1.5;}
+  .empty{text-align:center;color:var(--txt-2);padding:70px 30px;font-size:var(--t-body);line-height:1.5;}
   .empty b{color:var(--txt);}
 
   /* ---------- Bottom tab bar ---------- */
   .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:45;background:var(--surface);border-top:1px solid var(--line);
     max-width:460px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;
     padding:8px 6px calc(var(--safe-bot) + 8px);}
-  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--txt-2);font-size:13px;font-weight:700;padding:4px 0;}
-  .tab svg{width:24px;height:24px;stroke:var(--txt-2);fill:none;stroke-width:2;}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--txt-2);font-size:var(--t-meta);font-weight:700;padding:4px 0;}
+  .tab svg{width:var(--ic-md);height:var(--ic-md);stroke:var(--txt-2);fill:none;stroke-width:2;}
   .tab.active{color:var(--accent);}
   .tab.active svg{stroke:var(--accent);}
-  .tab.active::before{content:"";position:absolute;top:0;width:46px;height:3px;border-radius:3px;background:var(--accent);}
+  .tab.active::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:46px;height:3px;border-radius:3px;background:var(--accent);}
   .tab{position:relative;}
   .fab-wrap{display:flex;justify-content:center;align-items:flex-start;}
   .fab{width:62px;height:62px;border-radius:50%;background:var(--txt);color:var(--surface);display:flex;
     align-items:center;justify-content:center;margin-top:-22px;box-shadow:0 6px 18px rgba(0,0,0,.25);}
-  .fab svg{width:30px;height:30px;stroke:var(--surface);stroke-width:2.4;}
+  .fab svg{width:var(--ic-xl);height:var(--ic-xl);stroke:var(--surface);stroke-width:2.4;}
 
   /* ---------- Sheet / modal ---------- */
   .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;opacity:0;pointer-events:none;transition:opacity var(--dur) var(--ease-out);
@@ -251,26 +303,32 @@
     transition:transform var(--dur-slow) var(--ease-ios);max-height:92dvh;overflow-y:auto;padding-bottom:calc(var(--safe-bot) + 20px);}
   .backdrop.open .sheet{transform:translateY(0);}
   .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 6px;}
-  .sheet-head h2{margin:0;font-size:27px;font-weight:800;}
-  .xbtn{width:34px;height:34px;font-size:26px;color:var(--txt-2);display:flex;align-items:center;justify-content:center;}
-  .sheet-opt{display:flex;align-items:center;gap:16px;padding:20px 22px;border-top:1px solid var(--line);font-size:20px;font-weight:700;}
+  .sheet-head h2{margin:0;font-size:var(--t-screen);font-weight:800;letter-spacing:-.4px;}
+  .xbtn{width:38px;height:38px;font-size:var(--t-screen);color:var(--txt-2);display:flex;align-items:center;justify-content:center;line-height:1;}
+  .sheet-opt{display:flex;align-items:center;gap:14px;padding:18px 22px;border-top:1px solid var(--line);font-size:var(--t-row);font-weight:700;}
 
   /* add form */
   .form{padding:6px 22px 0;}
+  /* três por linha em qualquer largura: 5 tipos viram 3 + 2 centralizados,
+     em vez do 2/2/1 desalinhado que sobrava com larguras livres. */
   .type-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:6px 0 14px;}
-  .type-tab{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:30px;background:var(--bg);
-    font-weight:700;font-size:15px;color:var(--txt-2);border:2px solid transparent;}
+  .type-tab{flex:1 1 calc(33.333% - 8px);min-width:0;display:flex;align-items:center;justify-content:center;
+    gap:7px;padding:10px 8px;border-radius:30px;background:var(--bg);
+    font-weight:700;font-size:var(--t-sub);color:var(--txt-2);border:2px solid transparent;}
+  .type-tab span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .type-tab.sel{color:var(--txt);border-color:var(--txt);background:var(--surface);}
-  .amount-box{text-align:center;padding:14px 0 8px;}
-  .amount-box .cur{font-size:20px;color:var(--txt-2);font-weight:700;}
+  .amount-box{text-align:center;padding:16px 0 8px;}
+  /* “R$” vira rótulo pequeno acima do número, em vez de disputar tamanho com ele */
+  .amount-box .cur{font-size:var(--t-meta);color:var(--txt-3);font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;vertical-align:middle;}
   .sign-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--surface);
-    color:var(--txt-2);font-size:20px;font-weight:800;line-height:1;vertical-align:middle;margin-right:6px;}
+    color:var(--txt-2);font-size:var(--t-strong);font-weight:800;line-height:1;vertical-align:middle;margin-right:8px;}
   .sign-btn.neg{border-color:var(--saida);color:var(--saida);}
-  .field-hint{font-size:14px;font-weight:600;line-height:1.45;color:var(--txt-2);padding:4px 2px 2px;}
-  .fc-month{text-align:center;font-size:15px;font-weight:700;color:var(--txt-2);margin:-4px 0 14px;}
+  .field-hint{font-size:var(--t-meta);font-weight:600;line-height:1.45;color:var(--txt-2);padding:4px 2px 2px;}
+  .fc-month{text-align:center;font-size:var(--t-sub);font-weight:700;color:var(--txt-2);margin:-4px 0 14px;}
   .fc-help{list-style:none;margin:0 0 4px;padding:14px 16px;background:var(--surface-2);border-radius:16px;
     border:1px solid var(--line);}
-  .fc-help li{position:relative;padding-left:24px;margin-bottom:11px;font-size:15px;font-weight:600;
+  .fc-help li{position:relative;padding-left:24px;margin-bottom:11px;font-size:var(--t-sub);font-weight:600;
     line-height:1.45;color:var(--txt-2);}
   .fc-help li:last-child{margin-bottom:0;}
   .fc-help li::before{content:"✓";position:absolute;left:0;top:0;color:var(--diario);font-weight:900;}
@@ -290,7 +348,7 @@
   /* .sq-results tem flex:1 com base 0, então NÃO encolhe: sem flex:none aqui, todo o
      encolhimento do painel caía sobre o cabeçalho e os chips, que ficavam espremidos. */
   .sq-top{flex:none;display:flex;align-items:center;gap:10px;padding:12px 14px 10px;background:var(--surface);}
-  .sq-close{flex:0 0 auto;border:none;background:none;color:var(--txt-2);font-size:16px;font-weight:700;padding:6px 2px;}
+  .sq-close{flex:0 0 auto;border:none;background:none;color:var(--txt-2);font-size:var(--t-body);font-weight:700;padding:6px 2px;}
   /* a lista rola DENTRO do painel: os filtros ficam sempre visíveis */
   .sq-results{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);}
 
@@ -302,19 +360,19 @@
     transform:none;opacity:1;background:var(--bg);}
   .pg-screen>.topbar,.pg-screen>.perf-year{flex:none;}
   .pg-head{flex:none;padding:14px 20px 16px;background:var(--surface);border-bottom:1px solid var(--line);}
-  .pg-line{display:flex;justify-content:space-between;align-items:baseline;font-size:16px;
+  .pg-line{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-body);
     font-weight:700;color:var(--txt-2);margin-bottom:9px;}
-  .pg-line b{font-size:22px;font-weight:800;color:var(--txt);letter-spacing:-.4px;}
+  .pg-line b{font-size:var(--t-block);font-weight:800;color:var(--txt);letter-spacing:-.4px;}
   /* Barra de progresso "cheia": trilho cinza sólido, sem contorno.
      Vale para o cabeçalho da tela de realizado e para os cards de cálculo
      (realizado e economizado). NÃO se aplica às linhas mensais de .eco-barline,
      que são muitas e ficariam altas demais. */
-  .pg-head .bar,.calc .bar{height:34px;border-radius:20px;background:var(--line-strong);
-    border:none;overflow:hidden;}
+  .calc .bar{height:var(--bar);border-radius:20px;background:var(--line-strong);border:none;overflow:hidden;}
+  .pg-head .bar{height:var(--bar-lg);border-radius:20px;background:var(--line-strong);border:none;overflow:hidden;}
   .pg-head .bar{flex:none;}
   .pg-head .bar i,.calc .bar i{display:block;height:100%;border-radius:20px;
     transition:width var(--dur) var(--ease-out);}
-  .pg-sub{font-size:14px;font-weight:600;color:var(--txt-2);margin-top:8px;}
+  .pg-sub{font-size:var(--t-meta);font-weight:600;color:var(--txt-2);margin-top:8px;}
   .pg-row{cursor:pointer;}
   /* pago: apenas esmaecido. O riscado é do popup e não se aplica aqui — a linha
      continua na lista, então o traço aparecia e sumia no redesenho seguinte. */
@@ -326,23 +384,23 @@
   .search-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--bg);display:flex;flex-direction:column;}
   .sq-box{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:14px;
     background:var(--surface);border:1px solid var(--line-strong);}
-  .sq-box .sq-ic svg{width:19px;height:19px;display:block;fill:none;stroke:var(--txt-3);stroke-width:2.4;
+  .sq-box .sq-ic svg{width:var(--ic-sm);height:var(--ic-sm);display:block;fill:none;stroke:var(--txt-3);stroke-width:2.4;
     stroke-linecap:round;stroke-linejoin:round;}
-  .sq-box input{flex:1;min-width:0;border:none;background:none;outline:none;font-size:17px;font-weight:600;color:var(--txt);}
+  .sq-box input{flex:1;min-width:0;border:none;background:none;outline:none;font-size:var(--t-body);font-weight:600;color:var(--txt);}
   .sq-box input::-webkit-search-cancel-button{display:none;}
   .sq-clear{width:24px;height:24px;border-radius:50%;border:none;background:var(--line-strong);color:var(--txt-2);
-    font-size:13px;font-weight:800;flex:0 0 auto;}
+    font-size:var(--t-cap);font-weight:800;flex:0 0 auto;}
   .sq-chips{flex:none;display:flex;gap:7px;overflow-x:auto;padding:0 14px 9px;scrollbar-width:none;background:var(--surface);}
   .sq-chips::-webkit-scrollbar{display:none;}
   .sq-chip{flex:0 0 auto;padding:7px 13px;border-radius:30px;border:1.5px solid var(--line-strong);
-    background:var(--surface);color:var(--txt-2);font-size:14px;font-weight:700;white-space:nowrap;
+    background:var(--surface);color:var(--txt-2);font-size:var(--t-meta);font-weight:700;white-space:nowrap;
     transition:none;}
   .sq-chip.sel{background:var(--txt);border-color:var(--txt);color:var(--surface);}
   .sq-chip:active{transform:none;}
   .sq-sum{flex:none;display:flex;justify-content:space-between;align-items:baseline;padding:9px 18px;
-    font-size:14px;font-weight:700;color:var(--txt-2);background:var(--surface);
+    font-size:var(--t-meta);font-weight:700;color:var(--txt-2);background:var(--surface);
     border-top:1px solid var(--line);}
-  .sq-mes{padding:14px 20px 7px;font-size:13px;font-weight:800;color:var(--txt-3);
+  .sq-mes{padding:14px 20px 7px;font-size:var(--t-cap);font-weight:800;color:var(--txt-3);
     text-transform:lowercase;letter-spacing:.3px;background:var(--bg);}
 
   /* lançamento ainda não pago: valor esmaecido e barra lateral */
@@ -356,27 +414,28 @@
   /* ---------- Pago x previsto ---------- */
   .pago-toggle{display:flex;align-items:center;gap:11px;width:100%;padding:14px 16px;border-radius:16px;
     background:var(--surface-2);border:1.5px solid var(--line-strong);color:var(--txt-2);
-    font-size:16px;font-weight:700;margin-top:14px;
+    font-size:var(--t-body);font-weight:700;margin-top:14px;
     transition:border-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
   .pago-toggle .pg-box{width:24px;height:24px;flex:0 0 auto;border-radius:7px;border:2px solid var(--txt-3);
-    display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+    display:flex;align-items:center;justify-content:center;font-size:var(--t-sub);font-weight:900;color:#fff;}
   .pago-toggle.on{border-color:var(--green);color:var(--green);}
   .pago-toggle.on .pg-box{background:var(--green);border-color:var(--green);}
   .pago-toggle.late{border-color:var(--saida);color:var(--saida);}
   .pago-toggle.late .pg-box{border-color:var(--saida);}
-  .pago-toggle .pg-hint{margin-left:auto;font-size:13px;font-weight:600;color:var(--txt-3);}
+  .pago-toggle .pg-hint{margin-left:auto;font-size:var(--t-cap);font-weight:600;color:var(--txt-3);}
   .pago-toggle:active{transform:scale(.98);}
 
   /* ---------- Fatura ---------- */
   .ft-head{padding:14px 20px 16px;background:var(--surface);border-bottom:1px solid var(--line);}
-  .ft-card{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:800;}
+  .ft-card{display:flex;align-items:center;gap:9px;font-size:var(--t-body);font-weight:800;}
+  .ft-card .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
   .ft-card .dot{width:12px;height:12px;border-radius:4px;flex:0 0 auto;}
-  .ft-stat{margin-left:auto;font-size:12px;font-weight:800;padding:3px 10px;border-radius:30px;
+  .ft-stat{margin-left:auto;flex:0 0 auto;font-size:var(--t-cap);font-weight:800;padding:3px 10px;border-radius:30px;
     border:1.5px solid currentColor;text-transform:lowercase;}
-  .ft-tot{font-size:34px;font-weight:800;letter-spacing:-.8px;margin-top:8px;}
-  .ft-sub{font-size:14px;font-weight:600;color:var(--txt-2);margin-top:4px;line-height:1.45;}
+  .ft-tot{font-size:var(--t-display);font-weight:800;letter-spacing:-.8px;margin-top:8px;}
+  .ft-sub{font-size:var(--t-meta);font-weight:600;color:var(--txt-2);margin-top:4px;line-height:1.45;}
   .perf-row.ft-link{cursor:pointer;}
-  .ft-tagmini{margin-left:10px;font-size:11px;font-weight:800;padding:2px 8px;border-radius:30px;
+  .ft-tagmini{margin-left:10px;font-size:var(--t-micro);font-weight:800;padding:2px 8px;border-radius:30px;
     text-transform:lowercase;border:1.2px solid currentColor;}
   .ft-tagmini.aberta{color:var(--txt-3);}
   .ft-tagmini.fechada{color:var(--saida);}
@@ -384,30 +443,32 @@
   .perf-row.ft-link .pv{margin-left:auto;}
 
   /* ---------- Aviso de pendências ---------- */
-  .al-card{padding:0;overflow:hidden;text-align:left;max-width:390px;}
-  .al-head{display:flex;align-items:center;gap:13px;padding:20px 20px 16px;}
+  .al-card{padding:0;overflow:hidden;text-align:left;max-width:420px;}
+  .al-head{display:flex;align-items:center;gap:13px;padding:20px 18px 15px;}
   .al-ico{width:38px;height:38px;flex:0 0 auto;border-radius:50%;background:var(--saida);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;}
-  .al-tit{font-size:21px;font-weight:800;letter-spacing:-.3px;color:var(--txt);}
-  .al-sub{font-size:14px;font-weight:700;color:var(--txt-2);margin-top:2px;}
-  .al-list{max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:flex;align-items:center;justify-content:center;font-size:var(--t-block);font-weight:900;}
+  .al-tit{font-size:var(--t-block);font-weight:800;letter-spacing:-.3px;color:var(--txt);}
+  .al-sub{font-size:var(--t-meta);font-weight:700;color:var(--txt-2);margin-top:2px;}
+  .al-list{max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
-  .al-sec{padding:11px 20px 7px;font-size:12px;font-weight:800;color:var(--txt-3);
-    letter-spacing:.4px;text-transform:lowercase;background:var(--bg);}
+  .al-sec{padding:10px 18px 7px;font-size:var(--t-cap);font-weight:800;color:var(--txt-3);
+    letter-spacing:.4px;background:var(--bg);}
   .al-sec.late{color:var(--saida);}
-  .al-row{display:flex;align-items:center;gap:11px;padding:12px 20px;background:var(--surface);
+  .al-row{display:flex;align-items:center;gap:10px;padding:11px 18px;background:var(--surface);
     border-top:1px solid var(--line);}
   .al-row:first-of-type{border-top:none;}
   .al-info{flex:1;min-width:0;}
-  .al-nm{font-size:16px;font-weight:700;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .al-dt{font-size:13px;font-weight:600;color:var(--txt-2);margin-top:2px;}
-  .al-vl{font-size:16px;font-weight:800;color:var(--txt);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .al-nm{font-size:var(--t-body);font-weight:700;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* a data quebrava em duas linhas e deixava as linhas da lista de alturas diferentes */
+  .al-dt{font-size:var(--t-meta);font-weight:600;color:var(--txt-2);margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .al-vl{font-size:var(--t-body);font-weight:800;color:var(--txt);white-space:nowrap;font-variant-numeric:tabular-nums;}
   /* checkbox: o traço do ✓ é desenhado com stroke-dashoffset para a marcação ser visível */
   .al-chk{width:30px;height:30px;flex:0 0 auto;padding:0;border-radius:9px;
     border:2px solid var(--txt-3);background:var(--surface);
     display:flex;align-items:center;justify-content:center;
     transition:background-color .22s var(--ease-out),border-color .22s var(--ease-out);}
-  .al-chk svg{width:17px;height:17px;display:block;fill:none;stroke:#fff;stroke-width:3.4;
+  .al-chk svg{width:var(--ic-sm);height:var(--ic-sm);display:block;fill:none;stroke:#fff;stroke-width:3.4;
     stroke-linecap:round;stroke-linejoin:round;}
   .al-chk svg path{stroke-dasharray:22;stroke-dashoffset:22;
     transition:stroke-dashoffset .22s var(--ease-out);}
@@ -424,38 +485,39 @@
     transition:color .2s var(--ease-out);}
   .al-row.gone{opacity:0;transform:translateX(26px);max-height:0;
     padding-top:0;padding-bottom:0;border-top-width:0;}
-  .al-foot{padding:16px 20px 18px;}
+  .al-foot{padding:14px 18px 16px;}
   .al-foot .modal-opt{margin-bottom:10px;}
   .al-foot .modal-cancel{margin:0;}
-  .amount-box input{border:none;background:none;font-size:48px;font-weight:800;text-align:center;width:100%;color:var(--txt);outline:none;letter-spacing:-1px;}
+  .amount-box input{border:none;background:none;font-size:var(--t-input);font-weight:800;text-align:center;width:100%;color:var(--txt);outline:none;letter-spacing:-1px;line-height:1.15;}
+  .amount-box .amt-static{font-size:var(--t-input);font-weight:800;letter-spacing:-1px;}
   .field{padding:14px 0;border-top:1px solid var(--line);}
-  .field label{display:block;font-size:14px;color:var(--txt-2);font-weight:700;margin-bottom:7px;}
-  .field input[type=text],.field input[type=date],.field select{width:100%;font-size:18px;font-weight:600;padding:12px 14px;
+  .field label{display:block;font-size:var(--t-meta);color:var(--txt-2);font-weight:700;margin-bottom:7px;}
+  .field input[type=text],.field input[type=date],.field select{width:100%;font-size:var(--t-row);font-weight:600;padding:12px 14px;
     border:1px solid var(--line-strong);border-radius:14px;background:var(--surface-2);color:var(--txt);outline:none;}
   .hidden{display:none;}
-  .save-btn{width:100%;padding:17px;border-radius:16px;background:var(--accent);color:#fff;font-size:19px;font-weight:800;margin:16px 0 6px;}
-  .del-btn{width:100%;padding:15px;border-radius:16px;background:transparent;color:var(--saida);font-size:17px;font-weight:800;}
+  .save-btn{width:100%;padding:17px;border-radius:16px;background:var(--accent);color:#fff;font-size:var(--t-row);font-weight:800;margin:16px 0 6px;}
+  .del-btn{width:100%;padding:15px;border-radius:16px;background:transparent;color:var(--saida);font-size:var(--t-body);font-weight:800;}
   /* repetir */
-  .rep-head{display:flex;align-items:center;gap:14px;padding:16px 0;border-top:1px solid var(--line);font-size:18px;font-weight:700;cursor:pointer;}
-  .rep-head .rep-ic{width:26px;height:26px;flex:0 0 auto;}
-  .rep-head .rep-ic svg{width:24px;height:24px;stroke:var(--txt);fill:none;stroke-width:2;}
+  .rep-head{display:flex;align-items:center;gap:14px;padding:16px 0;border-top:1px solid var(--line);font-size:var(--t-row);font-weight:700;cursor:pointer;}
+  .rep-head .rep-ic{width:var(--ic-md);height:var(--ic-md);flex:0 0 auto;}
+  .rep-head .rep-ic svg{width:var(--ic-md);height:var(--ic-md);stroke:var(--txt);fill:none;stroke-width:2;}
   .rep-head .rep-name{flex:1 1 auto;min-width:0;}
-  .rep-head .chev{color:var(--txt-3);font-size:16px;}
+  .rep-head .chev{color:var(--txt-3);font-size:var(--t-body);}
   .rep-head .rep-x{width:34px;height:34px;flex:0 0 auto;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    color:var(--txt-2);font-size:20px;font-weight:700;background:var(--bg);}
+    color:var(--txt-2);font-size:var(--t-strong);font-weight:700;background:var(--bg);}
   .rep-opts{border-top:1px solid var(--line);}
   .rep-opt{padding:14px 0 14px 40px;border-top:1px solid var(--line);cursor:pointer;position:relative;}
   .rep-opt:first-child{border-top:none;}
-  .rep-opt .t{font-size:17px;font-weight:800;}
-  .rep-opt .d{font-size:13px;color:var(--txt-2);font-weight:600;margin-top:3px;}
+  .rep-opt .t{font-size:var(--t-body);font-weight:800;}
+  .rep-opt .d{font-size:var(--t-meta);color:var(--txt-2);font-weight:600;margin-top:3px;}
   .rep-opt.sel .t{color:var(--accent);}
-  .rep-opt.sel::after{content:"✓";position:absolute;right:2px;top:14px;color:var(--accent);font-weight:800;font-size:19px;}
+  .rep-opt.sel::after{content:"✓";position:absolute;right:2px;top:14px;color:var(--accent);font-weight:800;font-size:var(--t-row);}
   .rep-cwrap{padding:16px 0 4px;border-top:1px solid var(--line);}
-  .rep-cwrap .rl{font-size:14px;color:var(--txt-2);font-weight:700;margin-bottom:12px;}
+  .rep-cwrap .rl{font-size:var(--t-meta);color:var(--txt-2);font-weight:700;margin-bottom:12px;}
   .rep-crow{display:flex;align-items:center;gap:12px;}
-  .rep-prev{flex:1 1 auto;min-width:0;font-size:18px;font-weight:800;}
+  .rep-prev{flex:1 1 auto;min-width:0;font-size:var(--t-row);font-weight:800;}
   .rep-prev b{font-weight:800;}
-  .step-btn{width:46px;height:46px;flex:0 0 auto;border-radius:13px;background:var(--bg);font-size:26px;font-weight:700;
+  .step-btn{width:var(--hit);height:var(--hit);flex:0 0 auto;border-radius:13px;background:var(--bg);font-size:var(--t-screen);font-weight:700;
     color:var(--txt);display:flex;align-items:center;justify-content:center;line-height:1;}
   .step-btn:disabled{color:var(--txt-3);}
   .color-row{display:flex;gap:10px;flex-wrap:wrap;padding-top:4px;}
@@ -463,12 +525,13 @@
   .swatch.sel{border-color:var(--txt);}
   .mini-list{border-top:1px solid var(--line);}
   .mini-item{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--line);}
-  .mini-item .info{flex:1;} .mini-item .info .t{font-weight:700;font-size:17px;}
-  .mini-item .info .d{font-size:13px;color:var(--txt-2);font-weight:600;}
+  .mini-item .info{flex:1;min-width:0;} .mini-item .info .t{font-weight:700;font-size:var(--t-body);}
+  .mini-item .info .d{font-size:var(--t-meta);color:var(--txt-2);font-weight:600;}
+  .mini-item .chev{color:var(--txt-3);font-size:var(--t-strong);}
   .icon-btn{width:38px;height:38px;border-radius:11px;background:var(--bg);display:flex;align-items:center;justify-content:center;}
-  .icon-btn svg{width:19px;height:19px;stroke:var(--txt);fill:none;stroke-width:2;}
+  .icon-btn svg{width:var(--ic-sm);height:var(--ic-sm);stroke:var(--txt);fill:none;stroke-width:2;}
   .toast{position:fixed;bottom:130px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--txt);color:var(--surface);
-    padding:12px 22px;border-radius:30px;font-weight:700;font-size:15px;opacity:0;transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-ios);z-index:80;pointer-events:none;white-space:nowrap;}
+    padding:12px 22px;border-radius:30px;font-weight:700;font-size:var(--t-sub);opacity:0;transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-ios);z-index:80;pointer-events:none;white-space:nowrap;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .switch{margin-left:auto;width:52px;height:31px;border-radius:20px;background:var(--line-strong);position:relative;transition:background-color var(--dur) var(--ease-out);flex:0 0 auto;}
   .switch.on{background:var(--green);}
@@ -499,10 +562,10 @@
     padding:34px 28px calc(var(--safe-bot) + 34px);}
   .login-brand{text-align:center;margin-bottom:26px;}
   .login-logo{width:58px;height:58px;margin:0 auto 20px;gap:4px;}
-  .login-brand h1{font-size:32px;font-weight:800;margin:0;letter-spacing:-.5px;}
-  .login-brand p{color:var(--txt-2);font-weight:600;margin:8px 0 0;font-size:16px;}
-  .login-err{color:var(--saida);font-weight:700;font-size:14px;min-height:20px;text-align:center;padding:8px 0 2px;}
-  .login-link{display:block;width:100%;background:none;color:var(--txt-2);font-weight:700;font-size:14px;margin-top:12px;padding:8px;}
+  .login-brand h1{font-size:var(--t-month);font-weight:800;margin:0;letter-spacing:-.5px;}
+  .login-brand p{color:var(--txt-2);font-weight:600;margin:8px 0 0;font-size:var(--t-body);}
+  .login-err{color:var(--saida);font-weight:700;font-size:var(--t-meta);min-height:20px;text-align:center;padding:8px 0 2px;}
+  .login-link{display:block;width:100%;background:none;color:var(--txt-2);font-weight:700;font-size:var(--t-meta);margin-top:12px;padding:8px;}
 
   /* ---------- Página do dia ---------- */
   #dayview{display:none;position:fixed;inset:0;z-index:50;background:var(--surface);overflow-y:auto;
@@ -515,20 +578,22 @@
     transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
   #tagview.show{transform:translateX(0);}
   .tagview-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);}
-  .tagview-head .tvname{font-size:22px;font-weight:800;letter-spacing:-.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .tagview-head .tvtot{margin-left:auto;font-size:22px;font-weight:800;white-space:nowrap;}
+  .tagview-head .tvname{font-size:var(--t-block);font-weight:800;letter-spacing:-.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tagview-head .tvtot{margin-left:auto;font-size:var(--t-block);font-weight:800;white-space:nowrap;}
   .day-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--surface);}
   .day-screen .topbar{border-bottom:1px solid var(--line);}
-  .arrow.dv-plain{color:var(--txt);width:34px;}
-  .arrow.dv-plain svg{width:25px;height:25px;stroke-width:2.7;}
-  #dvBack{font-size:26px;}
-  .txrow{display:flex;align-items:center;gap:14px;padding:20px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
+  .arrow.dv-plain{color:var(--txt);width:38px;height:38px;}
+  .arrow.dv-plain svg{width:var(--ic-lg);height:var(--ic-lg);stroke-width:2.7;}
+  .txrow{display:flex;align-items:center;gap:13px;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
   .txrow .txinfo{flex:1;min-width:0;}
-  .txrow .txt{font-size:21px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.2px;}
-  .txrow .txd{font-size:16px;color:var(--txt-2);font-weight:600;margin-top:3px;}
-  .txrow .txright{text-align:right;flex:0 0 auto;padding-left:8px;}
-  .txrow .txval{font-size:21px;font-weight:800;white-space:nowrap;}
-  .txrow .txlbl{font-size:16px;color:var(--txt-2);font-weight:600;margin-top:3px;}
+  .txrow .txt{font-size:var(--t-row);font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.2px;}
+  /* mesma regra do título: antes a legenda quebrava em 3 linhas enquanto o
+     título ao lado era cortado — a linha inteira ficava desproporcional. */
+  .txrow .txd{font-size:var(--t-meta);color:var(--txt-2);font-weight:600;margin-top:3px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .txrow .txright{text-align:right;flex:0 0 auto;padding-left:10px;}
+  .txrow .txval{font-size:var(--t-row);font-weight:800;white-space:nowrap;}
+  .txrow .txlbl{font-size:var(--t-meta);color:var(--txt-2);font-weight:600;margin-top:3px;white-space:nowrap;}
 
   /* ---------- Performance (ano) ---------- */
   #faturaview{display:none;position:fixed;inset:0;z-index:56;background:var(--surface);overflow-y:auto;
@@ -542,41 +607,64 @@
   .perf-screen .topbar{background:var(--surface);border-bottom:1px solid var(--line);}
   .perf-year{display:flex;align-items:center;justify-content:center;gap:6px;margin:16px 18px 2px;
     border:1px solid var(--line-strong);border-radius:30px;padding:8px 6px;background:var(--surface);}
-  .perf-year .yr{font-size:20px;font-weight:800;letter-spacing:-.3px;min-width:96px;text-align:center;}
+  .perf-year .yr{font-size:var(--t-strong);font-weight:800;letter-spacing:-.3px;min-width:96px;text-align:center;}
   .perf-year .arrow{color:var(--txt-2);width:44px;height:36px;display:flex;align-items:center;justify-content:center;}
-  .perf-year .arrow svg{width:22px;height:22px;}
+  .perf-year .arrow svg{width:var(--ic-md);height:var(--ic-md);}
   .perf-help{border-bottom:1px solid var(--line);}
   .perf-help .hd{display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:18px 20px;color:var(--txt-2);font-size:17px;font-weight:700;}
-  .perf-help .hd .cx{transition:transform var(--dur) var(--ease-out);color:var(--txt-3);font-size:14px;}
+    padding:18px 20px;color:var(--txt-2);font-size:var(--t-body);font-weight:700;}
+  .perf-help .hd .cx{transition:transform var(--dur) var(--ease-out);color:var(--txt-3);font-size:var(--t-meta);}
   .perf-help.open .hd .cx{transform:rotate(180deg);}
   .perf-help .bd{max-height:0;overflow:hidden;transition:max-height var(--dur-slow) var(--ease-ios);}
   .perf-help.open .bd{max-height:360px;}
-  .perf-help .bd .inner{padding:0 20px 20px;color:var(--txt-2);font-size:14px;line-height:1.65;font-weight:600;}
+  .perf-help .bd .inner{padding:0 20px 20px;color:var(--txt-2);font-size:var(--t-sub);line-height:1.6;font-weight:600;}
   .perf-chart{padding:18px 14px 12px;background:var(--surface);border-bottom:1px solid var(--line);}
   .perf-chart svg{width:100%;height:auto;display:block;overflow:visible;}
+
+  /* ---------- Peças repetidas das telas sobrepostas ----------
+     Tudo isto vivia como style="font-size:24px" espalhado pelo JS, fora da
+     escala: mudava num lugar e não mudava nos outros seis. */
+  .ov-title{font-size:var(--t-screen);font-weight:800;letter-spacing:-.4px;}
+  .ov-gap{width:38px;flex:0 0 auto;}          /* contrapeso do botão voltar */
+  .tx-date{text-align:center;color:var(--txt-2);font-weight:600;font-size:var(--t-sub);}
+  .tx-desc{text-align:center;font-size:var(--t-row);font-weight:600;margin-bottom:4px;}
+  .tx-meta{text-align:center;margin:-6px 0 16px;font-weight:700;color:var(--txt-2);font-size:var(--t-sub);}
+  .tx-link{display:block;margin:10px auto 0;background:none;border:none;color:var(--cartao);
+    font-weight:800;font-size:var(--t-body);}
+  .tx-serie{text-align:center;color:var(--txt-2);font-weight:700;margin-top:8px;font-size:var(--t-sub);}
+  .subbar-title{font-weight:800;color:var(--txt);font-size:var(--t-body);}
+  .conn-pill{flex:0 0 auto;font-size:var(--t-cap);font-weight:800;}
+  .app-ver{padding:26px 20px;font-size:var(--t-cap);line-height:1.6;}
+  .card-mini{display:inline-flex;align-items:center;gap:5px;margin-right:12px;
+    font-weight:700;color:var(--txt-2);font-size:var(--t-meta);}
+  .card-mini i{width:11px;height:11px;border-radius:3px;display:block;}
+  /* cabeçalho “legenda … valor” repetido em todos os gráficos de ano */
+  .ch-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:0 6px 12px;}
+  .ch-cap{font-size:var(--t-meta);font-weight:700;color:var(--txt-2);}
+  .ch-val{font-size:var(--t-row);font-weight:800;}
   .perf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:22px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
-  .perf-row .pm{font-size:21px;font-weight:800;letter-spacing:-.2px;}
+    padding:18px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
+  .perf-row .pm{font-size:var(--t-row);font-weight:800;letter-spacing:-.2px;}
   .perf-row.now .pm::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
     background:var(--accent);margin-left:8px;vertical-align:middle;}
-  .perf-row .pv{font-size:21px;font-weight:800;white-space:nowrap;}
+  .perf-row .pv{font-size:var(--t-row);font-weight:800;white-space:nowrap;}
+  .perf-row .go{color:var(--txt-3);font-weight:800;font-size:var(--t-row);margin-left:8px;}
 
   /* ---------- Cartões (ano) ---------- */
   .cardchips{display:flex;gap:8px;overflow-x:auto;padding:14px 16px;background:var(--surface);
     border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;scrollbar-width:none;}
   .cardchips::-webkit-scrollbar{display:none;}
   .cardchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:22px;
-    border:1px solid var(--line-strong);background:var(--bg);color:var(--txt-2);font-size:15px;font-weight:700;
+    border:1px solid var(--line-strong);background:var(--bg);color:var(--txt-2);font-size:var(--t-sub);font-weight:700;
     letter-spacing:-.2px;transition:background var(--dur) var(--ease-out),color var(--dur) var(--ease-out),border-color var(--dur) var(--ease-out);}
   .cardchip .dot{width:11px;height:11px;border-radius:3px;}
   .cardchip.on{background:var(--txt);color:var(--surface);border-color:var(--txt);}
   .cardblock-head{display:flex;align-items:center;gap:10px;padding:22px 20px 4px;background:var(--surface);}
   .cardblock-head .dot{width:14px;height:14px;border-radius:4px;flex:0 0 auto;}
-  .cardblock-head .nm{font-size:21px;font-weight:800;letter-spacing:-.3px;flex:1 1 auto;min-width:0;
+  .cardblock-head .nm{font-size:var(--t-block);font-weight:800;letter-spacing:-.3px;flex:1 1 auto;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .cardblock-head .tot{font-size:20px;font-weight:800;color:var(--cartao);white-space:nowrap;}
-  .cardblock-sub{padding:0 20px 14px;background:var(--surface);color:var(--txt-3);font-size:13px;font-weight:700;
+  .cardblock-head .tot{font-size:var(--t-strong);font-weight:800;color:var(--cartao);white-space:nowrap;}
+  .cardblock-sub{padding:0 20px 14px;background:var(--surface);color:var(--txt-3);font-size:var(--t-meta);font-weight:700;
     border-bottom:1px solid var(--line);}
 
   /* ---------- Economizado (ano) ---------- */
@@ -585,15 +673,15 @@
   #ecoview.show{transform:translateX(0);}
   .eco-screen{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--bg);}
   .eco-screen .topbar{background:var(--surface);border-bottom:1px solid var(--line);}
-  .eco-big{font-size:56px;font-weight:800;letter-spacing:-1.5px;line-height:1.02;}
+  .eco-big{font-size:var(--t-hero);font-weight:800;letter-spacing:-1.5px;line-height:1.02;}
   .eco-block{padding:18px 20px 22px;background:var(--surface);border-bottom:1px solid var(--line);}
   .eco-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
-  .eco-head .nm{font-size:21px;font-weight:800;letter-spacing:-.2px;}
-  .eco-head .pc{font-size:21px;font-weight:800;}
+  .eco-head .nm{font-size:var(--t-strong);font-weight:800;letter-spacing:-.2px;}
+  .eco-head .pc{font-size:var(--t-strong);font-weight:800;}
   .eco-barline{display:flex;align-items:center;gap:10px;}
   .eco-vals{display:flex;justify-content:space-between;gap:12px;margin-top:14px;}
-  .eco-vals .col .k{font-size:15px;color:var(--txt-2);font-weight:700;}
-  .eco-vals .col .v{font-size:19px;font-weight:800;margin-top:3px;}
+  .eco-vals .col .k{font-size:var(--t-meta);color:var(--txt-2);font-weight:700;}
+  .eco-vals .col .v{font-size:var(--t-row);font-weight:800;margin-top:3px;}
   .eco-vals .col.r{text-align:right;}
   .eco-block.eco-now .nm::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
     background:var(--accent);margin-left:8px;vertical-align:middle;}
@@ -608,19 +696,21 @@
     transform:translateX(100%);transition:transform var(--dur-slow) var(--ease-ios);will-change:transform;}
   #mediaview.show{transform:translateX(0);}
   .med-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-    padding:20px;border-bottom:1px solid var(--line);background:var(--surface);}
-  .med-row .pm{font-size:21px;font-weight:800;letter-spacing:-.2px;padding-top:1px;}
+    padding:18px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
+  .med-row .pm{font-size:var(--t-row);font-weight:800;letter-spacing:-.2px;padding-top:1px;}
   .med-row.now .pm::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
     background:var(--accent);margin-left:8px;vertical-align:middle;}
   .med-r{text-align:right;white-space:nowrap;}
-  .med-r .mv{font-size:21px;font-weight:800;}
-  .med-r .ms{font-size:15px;color:var(--txt-3);font-weight:700;margin-top:5px;}
+  .med-r .mv{font-size:var(--t-row);font-weight:800;}
+  .med-r .ms{font-size:var(--t-meta);color:var(--txt-3);font-weight:700;margin-top:5px;}
 
   /* ---------- Conexão / carregamento ---------- */
   #netbar{position:fixed;top:0;left:0;right:0;z-index:120;max-width:460px;margin:0 auto;background:var(--saida);color:#fff;
-    font-weight:700;font-size:14px;text-align:center;padding:calc(var(--safe-top) + 11px) 16px 11px;
-    transform:translateY(-105%);transition:transform .25s;box-shadow:0 2px 10px rgba(0,0,0,.2);}
-  #netbar.show{transform:translateY(0);}
+    font-weight:700;font-size:var(--t-meta);text-align:center;padding:calc(var(--safe-top) + 11px) 16px 11px;
+    transform:translateY(-105%);transition:transform .25s;}
+  /* a sombra ficava desenhada mesmo com a barra escondida: sobrava uma faixa
+     cinza no alto de TODAS as telas. Agora só existe quando a barra aparece. */
+  #netbar.show{transform:translateY(0);box-shadow:0 2px 10px rgba(0,0,0,.2);}
   #cloudload{display:none;position:fixed;inset:0;z-index:90;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:16px;}
   #cloudload.show{display:flex;}
   .spinner{width:38px;height:38px;border:3px solid var(--line-strong);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
@@ -632,6 +722,29 @@
      ============================================================ */
   #sidebar{display:none;}
   @media (min-width:820px){
+    /* No iPad/PC a tela é maior mas a distância de leitura também: o texto
+       encolhe um degrau e os números gigantes encolhem mais, senão os cards
+       lado a lado ficam com o valor maior que o próprio card. A tabela densa
+       é o único item que CRESCE — 13,5px era pequeno demais ali. */
+    body.wide{
+      --t-meta:13px;
+      --t-sub:14.5px;
+      --t-body:16px;
+      --t-row:17.5px;
+      --t-strong:19px;
+      --t-block:21px;
+      --t-screen:23px;
+      --t-month:26px;
+      --t-display:31px;
+      --t-input:40px;
+      --t-hero:44px;
+      --ic-lg:23px;
+      --ic-xl:27px;
+      --bar:24px;
+      --bar-lg:28px;
+      --t-tbl:14px;
+      --tbl-row:44px;
+    }
     body.wide{display:block;min-height:100dvh;}
     body.wide #app{margin-left:236px;max-width:none;width:auto;min-width:0;background:var(--bg);}
     body.wide .tabbar{display:none!important;}
@@ -643,13 +756,13 @@
     .sb-brand{display:flex;align-items:center;gap:12px;padding:6px 10px 22px;}
     .sb-logo{width:40px;height:40px;border-radius:12px;overflow:hidden;display:grid;place-items:center;flex:0 0 auto;box-shadow:0 4px 12px rgba(0,0,0,.18);}
     .sb-logo img{width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;}
-    .sb-logo svg{width:22px;height:22px;}
-    .sb-brand .nm{font-size:21px;font-weight:800;letter-spacing:-.5px;}
+    .sb-logo svg{width:var(--ic-md);height:var(--ic-md);}
+    .sb-brand .nm{font-size:var(--t-block);font-weight:800;letter-spacing:-.5px;}
     .sb-nav{display:flex;flex-direction:column;gap:2px;}
     .sb-item{display:flex;align-items:center;gap:13px;width:100%;padding:12px 14px;border-radius:13px;touch-action:manipulation;
-      color:var(--txt-2);font-size:16px;font-weight:700;text-align:left;
+      color:var(--txt-2);font-size:var(--t-body);font-weight:700;text-align:left;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--press);}
-    .sb-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
+    .sb-item svg{width:var(--ic-md);height:var(--ic-md);stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
     @media (hover:hover) and (pointer:fine){ .sb-item:hover{background:var(--bg);color:var(--txt);} }
     .sb-item:active{transform:scale(.97);}
     .sb-item.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);}
@@ -657,29 +770,33 @@
     @media (hover:hover) and (pointer:fine){ .sb-item.add:hover{background:var(--accent);filter:brightness(1.06);color:#fff;} }
     .sb-sep{height:1px;background:var(--line);margin:12px 8px;}
     .sb-spacer{flex:1 1 auto;}
-    .sb-foot{padding:10px 14px 2px;color:var(--txt-3);font-size:13px;font-weight:700;text-transform:capitalize;}
+    /* sem text-transform: “capitalize” virava “Setembro De 2026”. A primeira
+       letra é maiúscula no próprio texto gerado. */
+    .sb-foot{padding:10px 14px 2px;color:var(--txt-3);font-size:var(--t-meta);font-weight:700;}
 
     /* ---------- Cabeçalho ---------- */
-    body.wide .topbar{justify-content:center;padding-top:calc(var(--safe-top) + 16px);}
-    body.wide .cal-badge{display:none;}
-    body.wide .month-label{font-size:24px;}
+    /* Só o cabeçalho principal fica centralizado. Antes esta regra pegava
+       também o topo das telas sobrepostas (dia, movimentações, tag, fatura) e
+       amontoava voltar + setas + “+” no meio da tela. */
+    body.wide #header .topbar{justify-content:center;padding-top:calc(var(--safe-top) + 16px);}
+    body.wide #header .cal-badge{display:none;}
 
     /* ---------- Saldos: tabela completa (todas as colunas) ---------- */
     body.wide.saldos-active #app{height:100dvh;}
     .stable{width:100%;border-collapse:collapse;table-layout:fixed;background:var(--surface);}
-    .stable th,.stable td{padding:0 8px;height:46px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);
-      font-size:13.5px;font-weight:600;vertical-align:middle;text-align:left;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;}
+    .stable th,.stable td{padding:0 9px;height:var(--tbl-row);border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+      font-size:var(--t-tbl);font-weight:600;vertical-align:middle;text-align:left;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;}
     .stable th:last-child,.stable td:last-child{border-right:none;}
     .stable thead th{position:sticky;top:0;z-index:6;background:var(--surface);color:var(--txt-2);
-      font-size:12px;font-weight:800;letter-spacing:-.2px;border-bottom:1px solid var(--line-strong);}
+      font-size:var(--t-cap);font-weight:800;letter-spacing:-.2px;border-bottom:1px solid var(--line-strong);}
     .stable thead th span{margin-left:6px;vertical-align:middle;}
     .stable thead .tcol-bal{text-align:right;}
     .stable col.cg-day{width:52px;}
     .stable col.cg-bal{width:146px;}
     .tcol-day{text-align:center!important;}
     .tcol-bal{text-align:right;}
-    .stable .badge{display:inline-flex;vertical-align:middle;width:20px;height:20px;font-size:10.5px;flex:0 0 auto;}
-    .stable .badge svg{width:11px;height:11px;}
+    .stable .badge{display:inline-flex;vertical-align:middle;width:var(--bd-tb);height:var(--bd-tb);font-size:var(--bd-tb-fs);flex:0 0 auto;}
+    .stable .badge svg{width:var(--bd-tb-ic);height:var(--bd-tb-ic);}
     .cellwrap{display:flex;align-items:center;gap:5px;min-width:0;}
     .cellwrap .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .tval.zero{color:var(--txt-3);}
@@ -700,14 +817,14 @@
     body.wide.saldos-active #content>.saldos-ctrl{flex:0 0 auto;}
     .saldos-ctrl{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 20px 13px;background:var(--surface);border-bottom:1px solid var(--line);}
     .yearnav{display:flex;align-items:center;gap:16px;}
-    .yearnav .yr{font-size:23px;font-weight:800;letter-spacing:-.5px;min-width:92px;text-align:center;}
-    .yearnav .arrow svg{width:24px;height:24px;}
+    .yearnav .yr{font-size:var(--t-block);font-weight:800;letter-spacing:-.5px;min-width:92px;text-align:center;}
+    .yearnav .arrow svg{width:var(--ic-md);height:var(--ic-md);}
     .yearnav .arrow{color:var(--txt-2);width:40px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;touch-action:manipulation;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
     @media (hover:hover) and (pointer:fine){ .yearnav .arrow:hover{background:var(--bg);color:var(--txt);} }
     .monthnav{display:flex;align-items:center;gap:12px;}
-    .monthnav .mo{font-size:16px;font-weight:700;color:var(--txt-2);min-width:118px;text-align:center;letter-spacing:-.2px;}
-    .monthnav .arrow svg{width:20px;height:20px;stroke-width:2.8;}
+    .monthnav .mo{font-size:var(--t-body);font-weight:700;color:var(--txt-2);min-width:118px;text-align:center;letter-spacing:-.2px;}
+    .monthnav .arrow svg{width:var(--ic-sm);height:var(--ic-sm);stroke-width:2.8;}
     .monthnav .arrow{color:var(--txt-2);width:32px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;touch-action:manipulation;
       transition:background-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out);}
     @media (hover:hover) and (pointer:fine){ .monthnav .arrow:hover{background:var(--bg);color:var(--txt);} }
@@ -750,6 +867,11 @@
 
     /* O card tem 820px, mas o SVG é 372×178: esticado, o gráfico ficava com ~380px
        de altura. Limita a largura do desenho (a faixa e a borda seguem inteiras). */
+    /* dentro de um card de 760–820px, controles de largura total ficam
+       esticados: o seletor de ano/mês e os botões de ação ganham largura máxima. */
+    body.wide .perf-year{max-width:340px;margin-left:auto;margin-right:auto;}
+    body.wide .search-screen .save-btn,body.wide .day-screen .save-btn,
+    body.wide .perf-screen .save-btn{max-width:420px;margin-left:auto;margin-right:auto;display:block;}
     body.wide .perf-chart{padding:20px 22px 14px;}
     body.wide .perf-chart svg{max-width:480px;margin:0 auto;}
   }
@@ -787,7 +909,7 @@
 
 <script>
 "use strict";
-const APP_VERSION="2026-09-01 · barras dos cards v20";
+const APP_VERSION="2026-09-01 · escala de proporções v21";
 /* =================== Persistência =================== */
 const KEY="termometro_financas_v1";
 let mem=null;
@@ -830,6 +952,8 @@ const navSVG=d=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></s
 const IC_PREV=navSVG("M15 4l-8 8 8 8");
 const IC_NEXT=navSVG("M9 4l8 8-8 8");
 const IC_BACK=navSVG("M20 12H4M11 5l-7 7 7 7");
+/* o "+" dos cabeçalhos era texto puro: minúsculo ao lado da seta de voltar */
+const IC_PLUS=navSVG("M12 5v14M5 12h14");
 /* escapa texto do usuário antes de interpolar em HTML (nomes de tag/cartão, descrições) */
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const brl=n=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(n||0);
@@ -1002,6 +1126,11 @@ function txSubLabel(t){
   return dm;
 }
 /* parcela x recorrência: parcelas antigas só têm recur:true, então inferimos pelo campo kind */
+/* "Revisão do carro (2/4)" -> base "Revisão do carro" + sufixo " (2/4)".
+   Usado ao editar uma série inteira, para cada item manter o próprio número. */
+const DESC_SUF=/\s*\((\d+)\/(\d+)\)\s*$/;
+function descBase(d){ return String(d==null?"":d).replace(DESC_SUF,""); }
+function descSuf(d){ const mt=String(d==null?"":d).match(DESC_SUF); return mt?` (${mt[1]}/${mt[2]})`:""; }
 function isParcela(t){ return t.kind==="parcela"; }
 function isRecorrente(t){ return !!t.recur && !isParcela(t); }
 function seriesGlyph(t){ return isParcela(t)?'# ':(isRecorrente(t)?'↺ ':''); }
@@ -1078,16 +1207,38 @@ function setPago(t,v){
 /* rótulo por tipo: entrada se recebe, o resto se paga */
 function palavraPago(t){ return t.type==="entrada"?"recebido":"pago"; }
 function palavraPendente(t){ return t.type==="entrada"?"a receber":"previsto"; }
+/* Divisor do diário médio: no mês corrente conta só os dias já vividos
+   (senão a média do dia 2 fica artificialmente baixa); nos demais, o mês todo.
+   Card de Totais e tela do ano usam ESTA função — antes divergiam. */
+function mediaDays(y,m){
+  const n=new Date();
+  if(n.getFullYear()===y&&n.getMonth()===m) return n.getDate();
+  return daysInMonth(y,m);
+}
 function monthTotals(y,m){
   const o={entrada:0,saida:0,diario:0,economia:0,cartao:0,previsao:0};
-  monthTx(y,m).forEach(t=>o[t.type]+=t.amount);
+  // um lançamento com tipo desconhecido virava NaN e contaminava a tela inteira
+  monthTx(y,m).forEach(t=>{ if(o[t.type]!==undefined) o[t.type]+=t.amount; });
   return o;
+}
+/* Previsão de diário acumulada dos meses ANTERIORES ao mês pedido.
+   Sem isto o saldo do dia 1 recomeçava sem as previsões do mês passado e a
+   linha de saldos dava um salto para cima na virada de cada mês. */
+function forecastBefore(y,m){
+  if(!forecastValue()) return 0;
+  const now=new Date();
+  let yy=now.getFullYear(), mm=now.getMonth(), s=0, guard=0;
+  while((yy<y||(yy===y&&mm<m)) && guard++<600){
+    s+=forecastTx(yy,mm).reduce((a,x)=>a+x.amount,0);
+    if(++mm>11){ mm=0; yy++; }
+  }
+  return s;
 }
 function openingBalance(y,m){
   const k=faturaKey(y,m);
   let b=state.settings.initial||0;
   state.tx.forEach(t=>{ if(txMonthKey(t)<k) b+=delta(t); });
-  return b;
+  return b-forecastBefore(y,m);
 }
 // saldo ao final de cada dia do mês
 function dailyBalances(y,m){
@@ -1110,7 +1261,7 @@ function renderHeader(){
   const today=new Date();
   const dnum=today.getDate();
   let html=`<div class="topbar">
-    <div class="cal-badge" id="todayBtn">${today.getMonth()===view.m&&today.getFullYear()===view.y?dnum:'<span style="font-size:13px;font-weight:800">hoje</span>'}</div>
+    <div class="cal-badge" id="todayBtn">${today.getMonth()===view.m&&today.getFullYear()===view.y?dnum:'<span class="hj">hoje</span>'}</div>
     <div class="month-nav">
       <button class="arrow" id="prevM">${IC_PREV}</button>
       <div class="month-label">${label}</div>
@@ -1264,15 +1415,13 @@ function chip(type){ return badge(type,"sm"); }
 function renderTotais(){
   const c=document.getElementById("content");
   const t=monthTotals(view.y,view.m);
-  const dim=daysInMonth(view.y,view.m);
-  const now=new Date();
-  const divDays=(now.getFullYear()===view.y&&now.getMonth()===view.m)?now.getDate():dim;
+  const divDays=mediaDays(view.y,view.m);
   const prevList=forecastTx(view.y,view.m);
   const prevTot=prevList.reduce((a,x)=>a+x.amount,0);
   // a previsão de diário entra nos dois cálculos: é dinheiro que ainda vai sair
   const perf=t.entrada-t.saida-t.diario-t.economia-t.cartao-prevTot;
   const custo=t.saida+t.diario+t.cartao+prevTot;
-  const medio=t.diario/divDays;          // média usa só o diário REAL
+  const medio=divDays>0?t.diario/divDays:0;   // média usa só o diário REAL
   const pct=t.entrada>0?(t.economia/t.entrada*100):0;
   // realizado x previsto: só o que se acompanha manualmente (saídas e cartão).
   // Diário e economia são sempre realizados, então inflariam o "pago" sem informar nada.
@@ -1289,27 +1438,27 @@ function renderTotais(){
   let html=`<div class="scroll">
     <div class="section-title">cálculos do mês</div>
     <div class="calc" id="perfCard">
-      <div class="top"><div class="name">performance <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:${perfColor}">${brl(perf)}</div><div class="cap">${perfCap}</div></div></div>
+      <div class="top"><div class="name">performance <span class="calc-arrow">›</span></div><div><div class="big" style="color:${perfColor}">${brl(perf)}</div><div class="cap">${perfCap}</div></div></div>
       <div class="chips">${chip("entrada")}<span class="op">−</span>${chip("saida")}<span class="op">−</span>${chip("diario")}<span class="op">−</span>${chip("economia")}<span class="op">−</span>${chip("cartao")}${prevTot?`<span class="op">−</span>${chip("previsao")}`:""}</div>
     </div>
     <div class="calc" id="ecoCard">
-      <div class="top"><div class="name">economizado <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${pct.toFixed(0)}%</div><div class="cap">${pct<=0?"nada guardado":"da renda guardada"}</div></div></div>
+      <div class="top"><div class="name">economizado <span class="calc-arrow">›</span></div><div><div class="big">${pct.toFixed(0)}%</div><div class="cap">${pct<=0?"nada guardado":"da renda guardada"}</div></div></div>
       <div class="chips"><span class="badge sm economia">E</span><div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>${chip("entrada")}</div>
     </div>
     <div class="calc" id="custoCard">
-      <div class="top"><div class="name">custo de vida <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(custo)}</div><div class="cap">${custoCap}</div></div></div>
+      <div class="top"><div class="name">custo de vida <span class="calc-arrow">›</span></div><div><div class="big">${brl(custo)}</div><div class="cap">${custoCap}</div></div></div>
       <div class="chips">${chip("saida")}<span class="op">+</span>${chip("diario")}<span class="op">+</span>${chip("cartao")}${prevTot?`<span class="op">+</span>${chip("previsao")}`:""}</div>
     </div>
     <div class="calc" id="mediaCard">
-      <div class="top"><div class="name">diário médio <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(medio)}</div><div class="cap">por dia</div></div></div>
-      <div class="chips"><span class="badge sm diario">D</span><span style="color:var(--txt-2);font-weight:700">/ ${divDays} dias</span>${forecastValue()?`<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">${badge("previsao","sm")}<span style="color:var(--txt-2);font-weight:700">${brl(forecastValue())}</span></span>`:""}</div>
+      <div class="top"><div class="name">diário médio <span class="calc-arrow">›</span></div><div><div class="big">${brl(medio)}</div><div class="cap">por dia</div></div></div>
+      <div class="chips"><span class="badge sm diario">D</span><span class="calc-note">/ ${divDays} ${divDays===1?"dia":"dias"}</span>${forecastValue()?`<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">${badge("previsao","sm")}<span style="color:var(--txt-2);font-weight:700">${brl(forecastValue())}</span></span>`:""}</div>
     </div>
     <div class="calc" id="pagoCard">
-      <div class="top"><div class="name">realizado <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big">${brl(saiPago)}</div><div class="cap">${saiTot>0?`de ${brl(saiTot)} previsto`:"nada lançado"}</div></div></div>
+      <div class="top"><div class="name">realizado <span class="calc-arrow">›</span></div><div><div class="big">${brl(saiPago)}</div><div class="cap">${saiTot>0?`de ${brl(saiTot)} previsto`:"nada lançado"}</div></div></div>
       <div class="chips"><div class="bar"><i style="width:${Math.max(0,Math.min(100,pgPct))}%;background:var(--green)"></i></div><span style="color:${atrasados.length?'var(--saida)':'var(--txt-2)'};font-weight:700;margin-left:10px">${atrasados.length?`${atrasados.length} atrasado${atrasados.length>1?"s":""}`:`${pgPct.toFixed(0)}% pago`}</span></div>
     </div>
     <div class="calc" id="cardsCard">
-      <div class="top"><div class="name">cartões <span style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div><div><div class="big" style="color:var(--cartao)">${brl(t.cartao)}</div><div class="cap">${state.cards.length?"nas faturas do mês":"nenhum cartão"}</div></div></div>
+      <div class="top"><div class="name">cartões <span class="calc-arrow">›</span></div><div><div class="big" style="color:var(--cartao)">${brl(t.cartao)}</div><div class="cap">${state.cards.length?"nas faturas do mês":"nenhum cartão"}</div></div></div>
       <div class="chips">${cardsChips()}</div>
     </div>
 
@@ -1330,7 +1479,7 @@ function renderTotais(){
           <span class="sub" style="display:block;margin-top:2px">${forecastValue()?`${brl(forecastValue())} por dia · ${prevList.length} ${prevList.length===1?"dia restante":"dias restantes"} no mês`:"toque para definir"}</span>
         </span>
         <span class="value" style="color:var(--diario)">${brl(prevTot)}</span>
-        <span class="chev" style="color:var(--txt-3);font-weight:800;font-size:20px">›</span></div>
+        <span class="chev">›</span></div>
     </div>
     <div class="grid-full" style="height:20px"></div>
   </div>`;
@@ -1350,7 +1499,7 @@ function renderTotais(){
 }
 function cardsChips(){
   if(!state.cards.length) return `<span style="color:var(--txt-3);font-weight:700">cadastre no menu ›</span>`;
-  return state.cards.slice(0,6).map(c=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;font-weight:700;color:var(--txt-2);font-size:13px"><span style="width:11px;height:11px;border-radius:3px;background:${cardColor(c)}"></span>${esc(c.name)}</span>`).join("")
+  return state.cards.slice(0,6).map(c=>`<span class="card-mini"><i style="background:${cardColor(c)}"></i>${esc(c.name)}</span>`).join("")
     + (state.cards.length>6?`<span style="color:var(--txt-3);font-weight:700">+${state.cards.length-6}</span>`:"");
 }
 function movRow(type,val){
@@ -1430,8 +1579,8 @@ function renderPerf(){
   g.innerHTML=`<div class="perf-screen">
     <div class="topbar">
       <button class="arrow dv-plain" id="pfBack">${IC_BACK}</button>
-      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">performance</div>
-      <div style="width:34px"></div>
+      <div class="ov-title">performance</div>
+      <div class="ov-gap"></div>
     </div>
     <div class="perf-year">
       <button class="arrow" id="pfPrev">${IC_PREV}</button>
@@ -1450,9 +1599,9 @@ function renderPerf(){
       </div></div>
     </div>
     <div class="perf-chart">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 12px">
-        <span style="font-size:14px;font-weight:700;color:var(--txt-2)">resultado do ano</span>
-        <span style="font-size:19px;font-weight:800;color:${ytCol}">${brl(yearTotal)}</span>
+      <div class="ch-head">
+        <span class="ch-cap">resultado do ano</span>
+        <span class="ch-val" style="color:${ytCol}">${brl(yearTotal)}</span>
       </div>
       ${anyData?perfChartSVG(vals):'<div class="empty" style="padding:22px 6px">Nenhum lançamento em '+perfYear+'.</div>'}
     </div>
@@ -1540,8 +1689,8 @@ function renderEco(){
   g.innerHTML=`<div class="eco-screen">
     <div class="topbar">
       <button class="arrow dv-plain" id="ecBack">${IC_BACK}</button>
-      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">economizado</div>
-      <div style="width:34px"></div>
+      <div class="ov-title">economizado</div>
+      <div class="ov-gap"></div>
     </div>
     <div class="perf-year">
       <button class="arrow" id="ecPrev">${IC_PREV}</button>
@@ -1565,9 +1714,9 @@ function renderEco(){
       ${savVals(yEcon,yEnt)}
     </div>
     <div class="perf-chart">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 12px">
-        <span style="font-size:14px;font-weight:700;color:var(--txt-2)">economizado por mês</span>
-        <span style="font-size:19px;font-weight:800;color:var(--economia)">${yPct.toFixed(0)}%</span>
+      <div class="ch-head">
+        <span class="ch-cap">economizado por mês</span>
+        <span class="ch-val" style="color:var(--economia)">${yPct.toFixed(0)}%</span>
       </div>
       ${yEnt>0?posBarChartSVG(pcts,"var(--economia)",ecoYear===now.getFullYear()?now.getMonth():-1):'<div class="empty" style="padding:22px 6px">Nenhuma entrada em '+ecoYear+'.</div>'}
     </div>
@@ -1626,8 +1775,8 @@ function renderCusto(){
   g.innerHTML=`<div class="perf-screen">
     <div class="topbar">
       <button class="arrow dv-plain" id="cvBack">${IC_BACK}</button>
-      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">custo de vida</div>
-      <div style="width:34px"></div>
+      <div class="ov-title">custo de vida</div>
+      <div class="ov-gap"></div>
     </div>
     <div class="perf-year">
       <button class="arrow" id="cvPrev">${IC_PREV}</button>
@@ -1649,9 +1798,9 @@ function renderCusto(){
       <div class="eco-big">${brl(yearTotal)}</div>
     </div>
     <div class="perf-chart">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 12px">
-        <span style="font-size:14px;font-weight:700;color:var(--txt-2)">custo de vida por mês</span>
-        <span style="font-size:19px;font-weight:800;color:var(--saida)">${brl(yearTotal)}</span>
+      <div class="ch-head">
+        <span class="ch-cap">custo de vida por mês</span>
+        <span class="ch-val" style="color:var(--saida)">${brl(yearTotal)}</span>
       </div>
       ${anyData?posBarChartSVG(vals,"var(--saida)",curM):'<div class="empty" style="padding:22px 6px">Nenhum gasto em '+custoYear+'.</div>'}
     </div>
@@ -1674,7 +1823,7 @@ let mediaOpen=false, mediaYear=new Date().getFullYear(), mediaHelp=false;
 /* diário médio do mês: total de diários ÷ dias do mês (dias cheios em todos os meses) */
 function monthMedia(y,m){
   const t=monthTotals(y,m);
-  const days=daysInMonth(y,m);
+  const days=mediaDays(y,m);
   return {total:t.diario, days, medio:days>0?t.diario/days:0};
 }
 
@@ -1705,7 +1854,7 @@ function renderMedia(){
       <span class="pm">${MN_FULL[i]}</span>
       <div class="med-r">
         <div class="mv">${brl(x.medio)}</div>
-        <div class="ms">${brl(x.total)} / ${x.days}</div>
+        <div class="ms">${brl(x.total)} / ${x.days} ${x.days===1?"dia":"dias"}</div>
       </div>
     </div>`;
   }).join("");
@@ -1713,8 +1862,8 @@ function renderMedia(){
   g.innerHTML=`<div class="perf-screen">
     <div class="topbar">
       <button class="arrow dv-plain" id="mdBack">${IC_BACK}</button>
-      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">diário médio</div>
-      <div style="width:34px"></div>
+      <div class="ov-title">diário médio</div>
+      <div class="ov-gap"></div>
     </div>
     <div class="perf-year">
       <button class="arrow" id="mdPrev">${IC_PREV}</button>
@@ -1728,13 +1877,14 @@ function renderMedia(){
         <b style="color:var(--diario)">diários</b>: é o total de diários do mês
         dividido pela quantidade de dias daquele mês.<br><br>
         Ex.: R$ 399,63 em diários num mês de 31 dias = <b>R$ 12,89</b> por dia.
-        Meses sem diários aparecem como R$ 0,00.
+        No mês em curso a conta usa só os dias já vividos, para a média não
+        parecer baixa no começo do mês. Meses sem diários aparecem como R$ 0,00.
       </div></div>
     </div>
     <div class="perf-chart">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 12px">
-        <span style="font-size:14px;font-weight:700;color:var(--txt-2)">média diária no ano</span>
-        <span style="font-size:19px;font-weight:800;color:var(--diario)">${brl(yearAvg)}</span>
+      <div class="ch-head">
+        <span class="ch-cap">média diária no ano</span>
+        <span class="ch-val" style="color:var(--diario)">${brl(yearAvg)}</span>
       </div>
       ${anyData?posBarChartSVG(medios,"var(--diario)",curM):'<div class="empty" style="padding:22px 6px">Nenhum diário em '+mediaYear+'.</div>'}
     </div>
@@ -1796,9 +1946,9 @@ function renderCardsView(){
     if(cardSel==="__all__"){
       body+=`<div class="section-title">todos os cartões</div>
       <div class="perf-chart">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 12px">
-          <span style="font-size:14px;font-weight:700;color:var(--txt-2)">gasto no ano</span>
-          <span style="font-size:19px;font-weight:800;color:var(--cartao)">${brl(allYear)}</span>
+        <div class="ch-head">
+          <span class="ch-cap">gasto no ano</span>
+          <span class="ch-val" style="color:var(--cartao)">${brl(allYear)}</span>
         </div>
         ${allYear>0?posBarChartSVG(allVals,"var(--cartao)",curM):'<div class="empty" style="padding:22px 6px">Sem gastos de cartão em '+cardYear+'.</div>'}
       </div>`;
@@ -1807,10 +1957,10 @@ function renderCardsView(){
       const vals=cardYearVals(c.name,cardYear), yTot=vals.reduce((a,b)=>a+b,0), col=cardColor(c);
       const list=vals.map((v,i)=>({v,i})).filter(x=>x.v>0)
         .map(x=>{ const k=faturaKey(cardYear,x.i), st=faturaStatus(c,k);
-          return `<div class="perf-row ft-link" data-fat="${c.id}|${k}"><span class="pm" style="font-size:18px">${MN_FULL[x.i]}</span>
+          return `<div class="perf-row ft-link" data-fat="${c.id}|${k}"><span class="pm">${MN_FULL[x.i]}</span>
             <span class="ft-tagmini ${st}">${st}</span>
             <span class="pv" style="color:var(--txt)">${brl(x.v)}</span>
-            <span style="color:var(--txt-3);font-weight:800;font-size:19px;margin-left:8px">›</span></div>`; }).join("");
+            <span class="go">›</span></div>`; }).join("");
       body+=`<div class="cardblock-head"><span class="dot" style="background:${col}"></span><span class="nm">${esc(c.name)}</span><span class="tot">${brl(yTot)}</span></div>
         <div class="cardblock-sub">fecha dia ${c.close} · vence dia ${c.due}</div>
         <div class="perf-chart">${yTot>0?posBarChartSVG(vals,col,curM):'<div class="empty" style="padding:18px 6px">Sem gastos em '+cardYear+'.</div>'}</div>
@@ -1821,8 +1971,8 @@ function renderCardsView(){
   g.innerHTML=`<div class="card-screen perf-screen">
     <div class="topbar">
       <button class="arrow dv-plain" id="cvwBack">${IC_BACK}</button>
-      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">cartões</div>
-      <div style="width:34px"></div>
+      <div class="ov-title">cartões</div>
+      <div class="ov-gap"></div>
     </div>
     <div class="perf-year">
       <button class="arrow" id="cvwPrev">${IC_PREV}</button>
@@ -1868,7 +2018,7 @@ function renderTags(){
     });
   }
   c.innerHTML=`<div class="subbar" style="padding-bottom:12px">
-    <span style="font-weight:800;color:var(--txt);font-size:17px">tags</span>
+    <span class="subbar-title">tags</span>
     <span style="display:flex;gap:8px">
       <button class="icon-btn" id="addTag" title="nova tag"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </span>
@@ -1892,7 +2042,7 @@ function renderMenu(){
             <div style="font-weight:800">${online?"Conectado à nuvem":"Sem conexão"}</div>
             <div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt-2)">${authEmail||"conectado"}</div>
           </div>
-          <span style="flex:0 0 auto;font-size:12px;font-weight:800;color:${online?"var(--green)":"var(--saida)"}">${online?"● online":"● offline"}</span>
+          <span class="conn-pill" style="color:${online?"var(--green)":"var(--saida)"}">${online?"● online":"● offline"}</span>
         </div>
         <div class="menu-row" id="mSignOut" style="color:var(--saida)">${ic('<path d="M16 17l5-5-5-5M21 12H9M12 19H6a2 2 0 01-2-2V7a2 2 0 012-2h6" stroke="#c1481c"/>')}Sair<span class="chev" style="color:var(--saida)">›</span></div>
       </div>`
@@ -1900,7 +2050,7 @@ function renderMenu(){
         <div class="menu-row" style="cursor:default;align-items:center">
           ${ic('<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 011 6.85"/>')}
           <div style="font-weight:800;flex:1 1 auto">Não conectado</div>
-          <span style="flex:0 0 auto;font-size:12px;font-weight:800;color:var(--saida)">● offline</span>
+          <span class="conn-pill" style="color:var(--saida)">● offline</span>
         </div>
       </div>`)
     : `<div class="section-title">status</div><div class="card">
@@ -1925,9 +2075,9 @@ function renderMenu(){
     <div class="card">
       <div class="menu-row" id="mBusca">${ic('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/>')}Buscar lançamentos<span class="chev">›</span></div>
       <div class="menu-row" id="mCards">${ic('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>')}Cartões<span class="chev">›</span></div>
-      <div class="menu-row" id="mCutoff">${ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}Controle de pagamentos<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">desde ${pagoCutoff().slice(8,10)}/${pagoCutoff().slice(5,7)}</span><span class="chev" style="margin-left:8px">›</span></div>
-      <div class="menu-row" id="mPrev">${ic('<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>')}Previsão de diário<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">${forecastValue()?brl(forecastValue())+"/dia":"desligada"}</span><span class="chev" style="margin-left:8px">›</span></div>
-      <div class="menu-row" id="mInitial">${ic('<path d="M12 3v18M8 7h6a3 3 0 010 6H9a3 3 0 000 6h7"/>')}Saldo inicial<span style="margin-left:auto;font-weight:800;color:var(--txt-2)">${brl(state.settings.initial||0)}</span><span class="chev" style="margin-left:8px">›</span></div>
+      <div class="menu-row" id="mCutoff">${ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}Controle de pagamentos<span class="mval">desde ${pagoCutoff().slice(8,10)}/${pagoCutoff().slice(5,7)}</span><span class="chev">›</span></div>
+      <div class="menu-row" id="mPrev">${ic('<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>')}Previsão de diário<span class="mval">${forecastValue()?brl(forecastValue())+"/dia":"desligada"}</span><span class="chev">›</span></div>
+      <div class="menu-row" id="mInitial">${ic('<path d="M12 3v18M8 7h6a3 3 0 010 6H9a3 3 0 000 6h7"/>')}Saldo inicial<span class="mval">${brl(state.settings.initial||0)}</span><span class="chev">›</span></div>
     </div>
     <div class="section-title">app</div>
     <div class="card">
@@ -1940,12 +2090,23 @@ function renderMenu(){
       <div class="menu-row" id="mImport">${ic('<path d="M12 15V3M7 8l5-5 5 5M5 21h14"/>')}Importar dados<span class="chev">›</span></div>
       <div class="menu-row" id="mClear" style="color:var(--saida)">${ic('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="#c1481c"/>')}Apagar tudo<span class="chev" style="color:var(--saida)">›</span></div>
     </div>
-    <div class="empty" style="padding:26px 20px;font-size:12px;line-height:1.6">Finanças · versão <b>${APP_VERSION}</b><br>${FB_ON?(authUid?("nuvem · "+(authEmail||"")):"nuvem · não conectado"):"modo local (sem sincronização)"}</div>
+    <div class="empty app-ver">Finanças · versão <b>${APP_VERSION}</b><br>${FB_ON?(authUid?("nuvem · "+(authEmail||"")):"nuvem · não conectado"):"modo local (sem sincronização)"}</div>
   </div>`;
   if(FB_ON && authUid){
-    const so=document.getElementById("mSignOut"); if(so)so.onclick=()=>{ if(confirm("Sair da conta?")) auth.signOut(); };
-    const pl=document.getElementById("mPull"); if(pl)pl.onclick=()=>{ if(confirm("Baixar os dados da nuvem e substituir os deste aparelho?")) forcePull(); };
-    const ph=document.getElementById("mPush"); if(ph)ph.onclick=()=>{ if(confirm("Enviar os dados DESTE aparelho para a nuvem, substituindo o que estiver lá?")) forcePush(); };
+    // pickModal no lugar de confirm(): o diálogo do sistema não segue o tema,
+    // trava a animação do sheet e no PWA em tela cheia às vezes nem aparece.
+    const so=document.getElementById("mSignOut");
+    if(so)so.onclick=async()=>{ if(await pickModal({title:"sair da conta",
+      note:"Seus dados continuam na nuvem. Você precisará entrar de novo neste aparelho.",
+      options:[{key:"ok",label:"sair",danger:true}]})==="ok") auth.signOut(); };
+    const pl=document.getElementById("mPull");
+    if(pl)pl.onclick=async()=>{ if(await pickModal({title:"baixar da nuvem",
+      note:"Substitui os dados deste aparelho pelos que estão na nuvem. O que estiver só aqui será perdido.",
+      options:[{key:"ok",label:"baixar e substituir",danger:true}]})==="ok") forcePull(); };
+    const ph=document.getElementById("mPush");
+    if(ph)ph.onclick=async()=>{ if(await pickModal({title:"enviar este aparelho",
+      note:"Substitui o que está na nuvem pelos dados deste aparelho. O que estiver só na nuvem será perdido.",
+      options:[{key:"ok",label:"enviar e substituir",danger:true}]})==="ok") forcePush(); };
   }
   document.getElementById("mFull").onclick=toggleFullscreen;
   document.getElementById("mBusca").onclick=()=>{ searchQ=""; searchType="todas"; searchStatus="todos"; openSearch(); };
@@ -1956,7 +2117,16 @@ function renderMenu(){
   document.getElementById("mTheme").onclick=()=>{ state.settings.theme=dark?"light":"dark"; applyTheme(); persist(); render(); };
   document.getElementById("mExport").onclick=exportData;
   document.getElementById("mImport").onclick=importData;
-  document.getElementById("mClear").onclick=()=>{ if(confirm("Apagar TODOS os lançamentos, tags e cartões?")){ state={tx:[],cards:[],tags:[],settings:{initial:0,forecast:0,theme:state.settings.theme}}; persist(); render(); toast("Tudo apagado"); } };
+  document.getElementById("mClear").onclick=async()=>{
+    const ok=await pickModal({title:"apagar tudo",
+      note:"Apaga todos os lançamentos, tags e cartões deste aparelho e da nuvem. Não dá para desfazer — exporte antes se tiver dúvida.",
+      options:[{key:"del",label:"apagar tudo",danger:true}]});
+    if(ok!=="del") return;
+    // normalizeState devolve done/pagoCutoff: sem isto o app ficava sem data de
+    // corte e todo lançamento novo já nascia marcado como pago.
+    state=normalizeState({tx:[],cards:[],tags:[],settings:{initial:0,forecast:0,theme:state.settings.theme}});
+    persist(); refresh(); toast("Tudo apagado");
+  };
 }
 
 /* =================== Tab bar =================== */
@@ -2047,7 +2217,9 @@ function renderMov(){
   const fType=({saidas:"saida",entradas:"entrada",diarios:"diario",economias:"economia",cartao:"cartao"})[f];
   let list=monthTxAll(view.y,view.m);
   if(f!=="todas") list=list.filter(t=>t.type===fType||(fType==="diario"&&t.type==="previsao"));
-  list.sort((a,b)=> b.date.localeCompare(a.date) || (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)));
+  // ordena pela data EFETIVA: uma compra de cartão pesa no vencimento da fatura,
+  // então ordenar por t.date jogava a compra do mês passado para o fim da lista.
+  list.sort((a,b)=> effDate(b).localeCompare(effDate(a)) || (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)));
   const fLabel=FILTER_LABEL[f]||f;
   const rows=list.length ? list.map(t=>`
     <div class="txrow ${txRowCls(t)}" data-tx="${t.id}">
@@ -2061,10 +2233,10 @@ function renderMov(){
       <button class="arrow dv-plain" id="mvBack">${IC_BACK}</button>
       <div class="month-nav">
         <button class="arrow" id="mvPrev">${IC_PREV}</button>
-        <div class="month-label" style="font-size:26px;min-width:96px">${label}</div>
+        <div class="month-label mini">${label}</div>
         <button class="arrow" id="mvNext">${IC_NEXT}</button>
       </div>
-      <button class="arrow dv-plain" id="mvAdd">+</button>
+      <button class="arrow dv-plain" id="mvAdd" aria-label="novo lançamento">${IC_PLUS}</button>
     </div>
     <div style="padding:14px 18px 6px"><button class="filter-pill" id="mvFilter" style="width:100%;justify-content:flex-start">${f==="todas"?'<span class="badge todas" style="background:var(--txt-2)">•••</span>':badge(fType)} ${fLabel}<span class="chev" style="margin-left:auto">▾</span></button></div>
     <div class="scroll">${rows}</div>
@@ -2281,8 +2453,8 @@ function renderFatura(){
   g.innerHTML=`<div class="search-screen">
     <div class="topbar">
       <button class="arrow dv-plain" id="ftBack">${IC_BACK}</button>
-      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">fatura</div>
-      <div style="width:34px"></div>
+      <div class="ov-title">fatura</div>
+      <div class="ov-gap"></div>
     </div>
     <div class="perf-year">
       <button class="arrow" id="ftPrev">${IC_PREV}</button>
@@ -2401,8 +2573,8 @@ function renderPagoView(){
   g.innerHTML=`<div class="sq-panel pg-screen">
     <div class="topbar">
       <button class="arrow dv-plain" id="pgBack">${IC_BACK}</button>
-      <div style="font-size:24px;font-weight:800;letter-spacing:-.4px">realizado</div>
-      <div style="width:34px"></div>
+      <div class="ov-title">realizado</div>
+      <div class="ov-gap"></div>
     </div>
     <div class="perf-year">
       <button class="arrow" id="pgPrev">${IC_PREV}</button>
@@ -2461,7 +2633,7 @@ function openSearch(){
   navPush(()=>{ searchOpen=false; const g=document.getElementById("searchview");
     g.classList.remove("show");
     setTimeout(()=>{ if(!searchOpen){ g.style.display="none"; g.innerHTML=""; } },460); });
-  setTimeout(()=>{ const el=document.getElementById("sqInput"); if(el) el.focus(); },320);
+  autoFoco(document.getElementById("sqInput"),320);   // no toque, não abre o teclado sozinho
 }
 function closeSearch(){ if(searchOpen) navBack(); }
 
@@ -2483,7 +2655,7 @@ function searchResults(){
     if(buscaValor && Math.abs(t.amount-alvo)<0.005) return true;
     const hay=[t.desc||"",t.tag||"",t.card||"",TYPE_WORD[t.type]||""].join(" ").toLowerCase();
     return termos.every(w=>hay.includes(w));   // todos os termos precisam bater
-  }).sort((a,b)=>b.date.localeCompare(a.date));
+  }).sort((a,b)=>effDate(b).localeCompare(effDate(a)));   // agrupamos por mês da fatura: ordene por ele
 }
 
 function renderSearch(){
@@ -2591,7 +2763,7 @@ function renderTagView(){
   g.style.display="block";
   const label=`${MN[view.m]}/${String(view.y).slice(2)}`;
   let list=monthTx(view.y,view.m).filter(t=>t.tag===tg.name);
-  list.sort((a,b)=> b.date.localeCompare(a.date) || (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)));
+  list.sort((a,b)=> effDate(b).localeCompare(effDate(a)) || (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)));
   const tot=list.reduce((s,t)=>s+t.amount,0);
   const rows=list.length ? list.map(t=>`
     <div class="txrow ${txRowCls(t)}" data-tx="${t.id}">
@@ -2605,7 +2777,7 @@ function renderTagView(){
       <button class="arrow dv-plain" id="tvBack">${IC_BACK}</button>
       <div class="month-nav">
         <button class="arrow" id="tvPrev">${IC_PREV}</button>
-        <div class="month-label" style="font-size:26px;min-width:96px">${label}</div>
+        <div class="month-label mini">${label}</div>
         <button class="arrow" id="tvNext">${IC_NEXT}</button>
       </div>
       <button class="arrow dv-plain" id="tvEdit" title="editar tag"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
@@ -2652,10 +2824,10 @@ function renderDay(){
       <button class="arrow dv-plain" id="dvBack">${IC_BACK}</button>
       <div class="month-nav">
         <button class="arrow" id="dvPrev">${IC_PREV}</button>
-        <div class="month-label" style="font-size:26px;min-width:96px">${label}</div>
+        <div class="month-label mini">${label}</div>
         <button class="arrow" id="dvNext">${IC_NEXT}</button>
       </div>
-      <button class="arrow dv-plain" id="dvAdd">+</button>
+      <button class="arrow dv-plain" id="dvAdd" aria-label="novo lançamento">${IC_PLUS}</button>
     </div>
     <div style="padding:14px 18px 6px"><button class="filter-pill" id="dvFilter" style="width:100%;justify-content:flex-start">${f==="todas"?'<span class="badge todas" style="background:var(--txt-2)">•••</span>':badge(fType)} ${fLabel}<span class="chev" style="margin-left:auto">▾</span></button></div>
     <div style="padding:0 18px 8px"><button class="done-toggle ${doneMap()[dayOpen]?'on':''}" id="dvDone"><span class="dt-box">${doneMap()[dayOpen]?'✓':''}</span>${doneMap()[dayOpen]?'dia concluído':'marcar dia como concluído'}</button></div>
@@ -2750,7 +2922,7 @@ async function deleteTx(txId){
 /* filtro "mostrar" */
 function openFilterSheet(current,onSelect){
   const opts=[["entradas","entrada"],["saidas","saida"],["diarios","diario"],["economias","economia"],["cartao","cartao"],["todas","todas"]];
-  let list=opts.map(([f,tp])=>`<div class="sheet-opt" data-f="${f}">${tp==="todas"?'<span class="badge todas" style="background:var(--txt-2)">•••</span>':badge(tp)} ${f==="cartao"?"gastos com cartão":f}${f===current?'<span style="margin-left:auto;color:var(--accent);font-weight:800;font-size:22px">✓</span>':''}</div>`).join("");
+  let list=opts.map(([f,tp])=>`<div class="sheet-opt" data-f="${f}">${tp==="todas"?'<span class="badge todas" style="background:var(--txt-2)">•••</span>':badge(tp)} ${f==="cartao"?"gastos com cartão":f}${f===current?'<span class="ck">✓</span>':''}</div>`).join("");
   openSheet(`<div class="sheet-head"><h2>mostrar</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>${list}<div style="height:14px"></div>`);
   sheetEl.querySelectorAll("[data-f]").forEach(el=>el.onclick=()=>{ closeSheet(); onSelect(el.dataset.f); });
 }
@@ -2762,7 +2934,9 @@ function openAddSheet(txId,presetDate){
   const _ctxF=dayOpen?view.dayFilter:view.filter;
   let sel=editing?editing.type:(TYPES[_fmap[_ctxF]]?_fmap[_ctxF]:"saida");
   const today=new Date();
-  const defDate=editing?editing.date:(presetDate||dstr(view.y,view.m,(today.getMonth()===view.m&&today.getFullYear()===view.y)?today.getDate():1));
+  // parcela de cartão guarda a data da COMPRA em buyDate; o campo date é sintético
+  // (mês da fatura). O formulário edita a data da compra, que é a que o usuário conhece.
+  const defDate=editing?buyDateOf(editing):(presetDate||dstr(view.y,view.m,(today.getMonth()===view.m&&today.getFullYear()===view.y)?today.getDate():1));
 
   const tabs=TYPE_ORDER.map(tp=>`<button class="type-tab ${tp===sel?'sel':''}" data-tp="${tp}">${badge(tp,"sm")} ${TYPES[tp].label.replace("gastos com ","")}</button>`).join("");
   const tagOpts=`<option value="">— sem tag —</option>`+state.tags.map(t=>`<option value="${esc(t.name)}" ${editing&&editing.tag===t.name?'selected':''}>${esc(t.name)}</option>`).join("");
@@ -2884,6 +3058,9 @@ function openAddSheet(txId,presetDate){
       card:cur==="cartao"?document.getElementById("fCard").value:""
     };
     if(cur==="cartao") obj.fatura=faturaChoice;
+    // editando uma parcela: a data digitada é a da compra. A data interna do
+    // lançamento continua sendo a do mês da fatura, senão a parcela mudaria de mês.
+    if(editing && editing.type==="cartao" && editing.buyDate){ obj.buyDate=obj.date; obj.date=editing.date; }
     if(editing){
       const sibs=editing.series?state.tx.filter(t=>t.series===editing.series):[];
       if(sibs.length>1){
@@ -2894,10 +3071,13 @@ function openAddSheet(txId,presetDate){
         if(scope==="future"){
           const cut=editing.date;
           state.tx.forEach(t=>{ if(t.series===editing.series && t.id!==editing.id && t.date>=cut){
-            t.type=obj.type; t.amount=obj.amount; t.desc=obj.desc; t.tag=obj.tag; t.card=obj.card;
+            t.type=obj.type; t.amount=obj.amount; t.tag=obj.tag; t.card=obj.card;
+            // cada parcela mantém a PRÓPRIA numeração: sem isto todas viravam "(1/4)"
+            t.desc=descBase(obj.desc)+descSuf(t.desc);
           }});
         }
         Object.assign(editing,obj);
+        editing.desc=descBase(obj.desc)+descSuf(editing.desc);
         toast(scope==="one"?"Lançamento atualizado":"Repetições atualizadas");
       } else { Object.assign(editing,obj); toast("Lançamento atualizado"); }
     }
@@ -2966,12 +3146,12 @@ function openTxSheet(txId){
   const t=state.tx.find(x=>x.id===txId); if(!t)return;
   openSheet(`<div class="sheet-head"><h2>lançamento</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form" style="padding-bottom:24px">
-      <div class="amount-box"><span class="cur">R$</span> <span style="font-size:44px;font-weight:800">${t.amount.toFixed(2).replace('.',',')}</span></div>
-      <div style="text-align:center;margin:-6px 0 16px">${badge(t.type,"sm")} <span style="font-weight:700;color:var(--txt-2)">${TYPES[t.type].label}${t.card?' · '+esc(t.card):''}${t.tag?' · '+esc(t.tag):''}</span></div>
-      <div style="text-align:center;font-size:18px;font-weight:600;margin-bottom:4px">${esc(t.desc)||"(sem descrição)"}</div>
-      <div style="text-align:center;color:var(--txt-2);font-weight:600">${t.date.split('-').reverse().join('/')}</div>
-      ${t.type==="cartao"&&t.fatura&&cardBy(t.card)?`<button id="verFatura" style="display:block;margin:8px auto 0;background:none;border:none;color:var(--cartao);font-weight:800;font-size:16px">ver fatura de ${faturaLabel(t.fatura)} ›</button>`:(t.type==="cartao"&&t.fatura?`<div style="text-align:center;color:var(--cartao);font-weight:800;margin-top:6px">fatura de ${faturaLabel(t.fatura)}</div>`:"")}
-      ${t.series&&state.tx.some(x=>x.series===t.series&&x.id!==t.id)?`<div style="text-align:center;color:var(--txt-2);font-weight:700;margin-top:8px">${isParcela(t)?"# lançamento parcelado":"↺ lançamento repetido"}</div>`:""}
+      <div class="amount-box"><span class="cur">R$</span> <span class="amt-static">${t.amount.toFixed(2).replace('.',',')}</span></div>
+      <div class="tx-meta">${badge(t.type,"sm")} <span>${TYPES[t.type].label}${t.card?' · '+esc(t.card):''}${t.tag?' · '+esc(t.tag):''}</span></div>
+      <div class="tx-desc">${esc(t.desc)||"(sem descrição)"}</div>
+      <div class="tx-date">${buyDateOf(t).split('-').reverse().join('/')}${t.type==="cartao"&&t.fatura?" · compra":""}</div>
+      ${t.type==="cartao"&&t.fatura&&cardBy(t.card)?`<button id="verFatura" class="tx-link">ver fatura de ${faturaLabel(t.fatura)} ›</button>`:(t.type==="cartao"&&t.fatura?`<div class="tx-link" style="color:var(--cartao)">fatura de ${faturaLabel(t.fatura)}</div>`:"")}
+      ${t.series&&state.tx.some(x=>x.series===t.series&&x.id!==t.id)?`<div class="tx-serie">${isParcela(t)?"# lançamento parcelado":"↺ lançamento repetido"}</div>`:""}
       ${exigePagamento(t)?`<button class="pago-toggle ${isPago(t)?'on':''} ${isAtrasado(t)?'late':''}" id="pagoThis">
         <span class="pg-box">${isPago(t)?"✓":""}</span>
         <span class="pg-txt">${isPago(t)?palavraPago(t):(isAtrasado(t)?"pendente · vencido":palavraPendente(t))}</span>
@@ -3032,7 +3212,7 @@ function openCardsSheet(){
   let list=state.cards.length?state.cards.map(c=>`<div class="mini-item" data-card="${c.id}">
       <span class="menu-ic" style="background:${cardColor(c)}"><svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#fff"/><path d="M2 10h20" stroke="#fff"/></svg></span>
       <div class="info"><div class="t">${esc(c.name)}</div><div class="d">fecha dia ${c.close} · vence dia ${c.due}</div></div>
-      <span class="chev" style="color:var(--txt-3);font-size:20px">›</span>
+      <span class="chev">›</span>
     </div>`).join(""):`<div class="empty" style="padding:30px">Nenhum cartão cadastrado.</div>`;
   openSheet(`<div class="sheet-head"><h2>cartões</h2><button class="xbtn" onclick="closeSheet()">✕</button></div>
     <div class="form"><div class="mini-list">${list}</div>
@@ -3437,7 +3617,7 @@ function renderSidebar(){
     sb.dataset.built="1";
   }
   sb.querySelectorAll(".sb-nav [data-sb]").forEach(el=>el.classList.toggle("active", el.dataset.sb===view.tab));
-  const foot=sb.querySelector(".sb-foot"); if(foot) foot.textContent=`${MN_FULL[view.m]} de ${view.y}`;
+  const foot=sb.querySelector(".sb-foot"); if(foot) foot.textContent=`${MN_FULL[view.m].charAt(0).toUpperCase()+MN_FULL[view.m].slice(1)} de ${view.y}`;
 }
 
 function scrollSaldosToToday(){
